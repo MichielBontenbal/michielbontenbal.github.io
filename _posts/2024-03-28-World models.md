@@ -1,8 +1,8 @@
-## A glass half full - why image generators need world models
+# A glass half full - why image generators need world models
 
 Are AI systems capable of understanding the world around them? At this moment, they seem not to fully understand the world as it is. World models could help.
 
-# What are world models?
+### What are world models?
 
 In a 2018 paper 'World models' by David Ha and Jurgen Schmidhuberthe term world model was introduced in the field of AI.
 
@@ -24,7 +24,7 @@ of both spatial and temporal aspects of this information.
 
 So we, as humans (and other animals) create an abstract representation of the world around us. AI systems do the same. With big differences between how humans and AI systems do this, off course. 
 
-# Why is this important? 
+### Why is this important? 
 
 The current generation of image generators (Dall-e, Midjourney, Stable Diffusion etc) does not have a good mental model of the physical world, resulting in images that are generated wrongly. 
 
@@ -32,7 +32,7 @@ The current generation of image generators (Dall-e, Midjourney, Stable Diffusion
 
 The image above is a glass half full of water. But the image generator fails to capture what we humans all know: gravity makes that the bottom half of the glass is full of water, not the left or right half. And yes, as ChatGPT explained itself, it understands half full in a incorrect way:
 
-# Shade and hands
+### Shade and hands
 
 I'll give two other examples for understanding the physical world: shade and hands. 
 
@@ -46,7 +46,7 @@ The most famous case where GenAI get's things wrong is hands. Hands are difficul
 
 The promise of AI was that AI systems learns rules from examples. As the current generation of AI models fails to learn that a hand has 5 fingers, is it than able to learn anything?
 
-# What's next?
+### What's next?
 With the rise of Diffusion Video models, such as OpenAI's Sora, creating good world models have become crucial. OpenAI explains this as follows: 
 
 *We find that video models exhibit a number of interesting **emergent capabilities** when trained at scale. These capabilities enable Sora to simulate some aspects of people, animals and environments from the physical world.*
