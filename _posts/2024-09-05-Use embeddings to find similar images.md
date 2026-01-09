@@ -1,6 +1,6 @@
-## Use image embeddings for finding similar images and clustering images
+## Use image embeddings to find similar images
 
- By using Deep Learning for images we can create so called 'image embeddings'. An image embedding, is an image converted to a set of numbers (called a vector) using an AI model.
+ When we use Deep Learning for images we can create so called 'image embeddings'. An image embedding is an image converted to a set of numbers (called a vector) using an AI model.
  
  In this blog post, we'll explore how to use image embeddings for similarity search and clustering, with a focus on OpenAI CLIP, cosine similarity, and KMeans clustering. 
 
