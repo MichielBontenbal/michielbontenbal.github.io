@@ -8,6 +8,8 @@ This solves the problem that I encounter more an more: "Which virtual environmen
 
 With the fast growing number of Python packages and tools, managing dependencies can become a nightmare. `uv` simplifies this by allowing you to define your project's dependencies in a single `pyproject.toml` file.
 
+Note: as a have a Mac M4, I cannot use Docker as this let's me use the CPU only. Programs in the Docker container cannot access the GPU (Apple's MPS).
+
 Here is a basic workflow from scratch.
 
 
