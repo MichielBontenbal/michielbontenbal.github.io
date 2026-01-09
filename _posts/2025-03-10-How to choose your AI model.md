@@ -1,5 +1,5 @@
 # How to choose your AI model
-</i>Cross posted from my Huggingface blog.</i>
+<i>Cross posted from my Huggingface blog.</i>
 
 My students often ask me how they best can select the right model for their use case. With the exploding number of models this is good question. Here I try to explain some of the steps you can take to select the right model. 
 
