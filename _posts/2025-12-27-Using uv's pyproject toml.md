@@ -2,11 +2,13 @@
 
 I recently started using `uv` for my Python projects, and I wanted to share my experience with setting up the `pyproject.toml` file. 
 
-pyproject.toml is a neat way to have a single repository in a single virtual environment. 
+By using pyproject.toml you have a single virtual environment for each project, which makes managing dependencies much easier. 
 
-By following this you can create your   (.venv). 
+This solves the problem that I encounter more an more: "Which virtual environment am I using for this project again?"
 
-Here is a basic workflow from scratch: from initiating a new project to cloning a repo into it and adding the requirements. 
+With the fast growing number of Python packages and tools, managing dependencies can become a nightmare. `uv` simplifies this by allowing you to define your project's dependencies in a single `pyproject.toml` file.
+
+Here is a basic workflow from scratch.
 
 
 ### Step 1: Create a new directory for your project
