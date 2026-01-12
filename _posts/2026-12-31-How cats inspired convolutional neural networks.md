@@ -28,7 +28,7 @@ It was not until the 2010's, however, that CNNs really took off. With the advent
 
 LeCun received the Turing Award in 2018, together with Geoffrey Hinton (🇨🇦) and Yoshua Bengio (🇨🇦), for their work on deep learning.
 
-### Do not gerenalize too much
+### Do not gerenalize
 When I teach my students about CNNs, I always stress that CNNs mimic only a very small part of the brain. This part of the brain is only responsible for processing visual input, nothing else.
 
 Other parts of our brain are responsible for other visual tasks, such as recognizing faces, colors, or motion. Also we use another part of the brain to generalize and give meaning to what we see. CNNs do not do any of that!
