@@ -1,4 +1,13 @@
 <style>
+:root{
+  --color-background-primary:#FFFFFF;
+  --color-background-secondary:#FFFFFF;
+  --color-background-tertiary:#EDE8DF;
+  --color-border-secondary:#C9C2B8;
+  --color-border-tertiary:#DDD8D0;
+  --color-text-primary:#1A1814;
+  --color-text-secondary:#6B6660;
+}
 *{box-sizing:border-box}
 body,button,input{font-family:inherit}
 .sb{background:var(--color-background-secondary);border:0.5px solid var(--color-border-secondary);border-radius:8px;padding:7px 16px;font-size:14px;color:var(--color-text-primary);cursor:pointer;transition:all .15s}
@@ -18,7 +27,7 @@ p.m{color:var(--color-text-secondary);font-size:14px}
 .bar{height:100%;border-radius:5px;transition:width .5s}
 </style>
 
-<div style="padding:.5rem 0">
+<div style="padding:1.25rem;background:#F5F0E8;border-radius:12px">
 
 <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1.25rem" id="tabs">
   <button class="sb active" onclick="go(0)">1 · Input</button>
