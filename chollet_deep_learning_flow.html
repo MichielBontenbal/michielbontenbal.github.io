@@ -1,0 +1,291 @@
+<style>
+*{box-sizing:border-box}
+body,button,input{font-family:inherit}
+.sb{background:var(--color-background-secondary);border:0.5px solid var(--color-border-secondary);border-radius:8px;padding:7px 16px;font-size:14px;color:var(--color-text-primary);cursor:pointer;transition:all .15s}
+.sb:hover{background:var(--color-background-tertiary)}
+.sb.active{background:#E6F1FB;border-color:#85B7EB;color:#0C447C}
+.card{background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:12px;padding:1rem 1.25rem;margin-bottom:.75rem}
+.icard{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:8px;padding:.6rem .9rem}
+p{font-size:15px;line-height:1.7;margin:0 0 .5rem;color:var(--color-text-primary)}
+p.m{color:var(--color-text-secondary);font-size:14px}
+.tag{display:inline-block;font-size:12px;padding:2px 9px;border-radius:20px;font-weight:500;vertical-align:middle}
+.tp{background:#EEEDFE;color:#3C3489}
+.tt{background:#E1F5EE;color:#085041}
+.ta{background:#FAEEDA;color:#633806}
+.tc{background:#FAECE7;color:#712B13}
+.tg{background:#EAF3DE;color:#27500A}
+.bar-wrap{height:10px;background:var(--color-border-tertiary);border-radius:5px;overflow:hidden;margin:4px 0}
+.bar{height:100%;border-radius:5px;transition:width .5s}
+</style>
+
+<div style="padding:.5rem 0">
+
+<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1.25rem" id="tabs">
+  <button class="sb active" onclick="go(0)">1 · Input</button>
+  <button class="sb" onclick="go(1)">2 · Forward pass</button>
+  <button class="sb" onclick="go(2)">3 · Predictions</button>
+  <button class="sb" onclick="go(3)">4 · Loss function</button>
+  <button class="sb" onclick="go(4)">5 · Backprop</button>
+  <button class="sb" onclick="go(5)">6 · Full loop</button>
+</div>
+
+<div id="panels">
+
+<div id="p0">
+  <svg width="100%" viewBox="0 0 680 200" style="margin-bottom:.75rem">
+    <defs><marker id="ar0" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+    <rect x="20" y="70" width="100" height="60" rx="4" fill="#1a1a1a"/>
+    <text x="70" y="94" text-anchor="middle" font-size="28" font-weight="500" fill="white" font-family="monospace">4</text>
+    <text x="70" y="150" text-anchor="middle" font-size="12" fill="var(--color-text-secondary)" font-family="sans-serif">input image</text>
+    <line x1="120" y1="100" x2="168" y2="100" stroke="#888780" stroke-width="1.5" marker-end="url(#ar0)"/>
+    <rect x="170" y="72" width="120" height="56" rx="6" fill="#EEEDFE" stroke="#534AB7" stroke-width="1"/>
+    <text x="230" y="97" text-anchor="middle" font-size="13" font-weight="500" fill="#3C3489" font-family="sans-serif">Weights W₁</text>
+    <text x="230" y="116" text-anchor="middle" font-size="11" fill="#534AB7" font-family="sans-serif">Layer 1</text>
+    <line x1="290" y1="100" x2="338" y2="100" stroke="#888780" stroke-width="1.5" marker-end="url(#ar0)"/>
+    <rect x="340" y="72" width="120" height="56" rx="6" fill="#EEEDFE" stroke="#534AB7" stroke-width="1"/>
+    <text x="400" y="97" text-anchor="middle" font-size="13" font-weight="500" fill="#3C3489" font-family="sans-serif">Weights W₂</text>
+    <text x="400" y="116" text-anchor="middle" font-size="11" fill="#534AB7" font-family="sans-serif">Layer 2</text>
+    <line x1="460" y1="100" x2="508" y2="100" stroke="#888780" stroke-width="1.5" marker-end="url(#ar0)"/>
+    <rect x="510" y="72" width="140" height="56" rx="6" fill="#E1F5EE" stroke="#0F6E56" stroke-width="1"/>
+    <text x="580" y="97" text-anchor="middle" font-size="13" font-weight="500" fill="#085041" font-family="sans-serif">Predictions Y'</text>
+    <text x="580" y="116" text-anchor="middle" font-size="11" fill="#0F6E56" font-family="sans-serif">scores per class</text>
+    <text x="230" y="170" text-anchor="middle" font-size="11" fill="var(--color-text-secondary)" font-family="sans-serif">forward pass →</text>
+  </svg>
+  <p>The network sees a raw image of a handwritten digit. Pixel values flow into the first layer, get transformed by weights, pass to the next layer, and eventually produce a score for each possible class (0–9).</p>
+  <p class="m">At the start of training the weights are random, so the predictions will be garbage — that's fine. The whole point of training is to fix them.</p>
+</div>
+
+<div id="p1" style="display:none">
+  <div class="card">
+    <p style="font-size:13px;font-weight:500;margin-bottom:.75rem;color:var(--color-text-primary)">What happens inside each layer?</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="icard">
+        <div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:4px"><span class="tag tp">step 1</span> weighted sum</div>
+        <div style="font-size:15px;color:#3C3489;font-family:Georgia,serif;font-style:italic">z = W · x + b</div>
+        <div style="font-size:12px;color:var(--color-text-secondary);margin-top:4px">multiply inputs by weights, add bias</div>
+      </div>
+      <div class="icard">
+        <div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:4px"><span class="tag tp">step 2</span> activation</div>
+        <div style="font-size:15px;color:#3C3489;font-family:Georgia,serif;font-style:italic">a = ReLU(z)</div>
+        <div style="font-size:12px;color:var(--color-text-secondary);margin-top:4px">add non-linearity so layers aren't redundant</div>
+      </div>
+    </div>
+    <div style="margin-top:.75rem;padding-top:.75rem;border-top:0.5px solid var(--color-border-tertiary)">
+      <div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:.4rem">Each layer passes its output as input to the next:</div>
+      <div style="font-size:13px;color:var(--color-text-primary);font-family:Georgia,serif;font-style:italic">a₁ → Layer 2 → a₂ → … → Y'</div>
+    </div>
+  </div>
+  <p class="m">This chain of operations — from raw pixels to class scores — is called the <strong style="color:var(--color-text-primary)">forward pass</strong>. It's fast, deterministic, and fully defined by the current weights.</p>
+</div>
+
+<div id="p2" style="display:none">
+  <div class="card">
+    <p style="font-size:13px;font-weight:500;margin-bottom:.75rem;color:var(--color-text-primary)">Predictions Y' — one score per class</p>
+    <div id="pred_bars"></div>
+    <div style="display:flex;justify-content:space-between;margin-top:.5rem">
+      <button class="sb" onclick="randomPreds()">Randomise predictions</button>
+      <span style="font-size:13px;color:var(--color-text-secondary);align-self:center">True label: <strong style="color:var(--color-text-primary)">4</strong></span>
+    </div>
+  </div>
+  <p class="m">The network outputs a probability for each digit 0–9. Ideally class 4 should score highest. Before training, the scores are essentially random — the network has no idea yet.</p>
+</div>
+
+<div id="p3" style="display:none">
+  <div class="card">
+    <p style="font-size:13px;font-weight:500;margin-bottom:.75rem;color:var(--color-text-primary)">Loss function — how wrong are we?</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:.75rem">
+      <div class="icard" style="text-align:center">
+        <div style="font-size:12px;color:var(--color-text-secondary)">Prediction for class 4</div>
+        <div style="font-size:24px;font-weight:500;color:#3C3489" id="loss_pred">0.12</div>
+      </div>
+      <div class="icard" style="text-align:center">
+        <div style="font-size:12px;color:var(--color-text-secondary)">True target Y</div>
+        <div style="font-size:24px;font-weight:500;color:#27500A">1.00</div>
+      </div>
+    </div>
+    <div class="icard" style="margin-bottom:.5rem">
+      <div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:4px"><span class="tag tc">loss</span> cross-entropy loss</div>
+      <div style="font-size:16px;font-style:italic;font-family:Georgia,serif;color:#993C1D" id="loss_val">L = −log(0.12) = 2.12</div>
+    </div>
+    <div style="font-size:12px;color:var(--color-text-secondary)">Higher confidence in the wrong answer → higher loss. Perfect prediction → loss = 0.</div>
+  </div>
+  <p>The loss function compares the network's output to the <span class="tag tg">true label Y</span>. It produces a single number — the loss score — that summarises "how wrong" the network is on this example.</p>
+  <p class="m">Lower loss = better. Training = minimising this number across all training examples.</p>
+</div>
+
+<div id="p4" style="display:none">
+  <svg width="100%" viewBox="0 0 680 210" style="margin-bottom:.75rem">
+    <defs><marker id="ar4" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+    <rect x="20" y="80" width="110" height="50" rx="6" fill="#EEEDFE" stroke="#534AB7" stroke-width="1"/>
+    <text x="75" y="101" text-anchor="middle" font-size="12" font-weight="500" fill="#3C3489" font-family="sans-serif">Weights W₁</text>
+    <text x="75" y="118" text-anchor="middle" font-size="11" fill="#534AB7" font-family="sans-serif">← updated</text>
+    <rect x="200" y="80" width="110" height="50" rx="6" fill="#EEEDFE" stroke="#534AB7" stroke-width="1"/>
+    <text x="255" y="101" text-anchor="middle" font-size="12" font-weight="500" fill="#3C3489" font-family="sans-serif">Weights W₂</text>
+    <text x="255" y="118" text-anchor="middle" font-size="11" fill="#534AB7" font-family="sans-serif">← updated</text>
+    <ellipse cx="430" cy="105" rx="90" ry="38" fill="#FAEEDA" stroke="#854F0B" stroke-width="1"/>
+    <text x="430" y="100" text-anchor="middle" font-size="13" font-weight="500" fill="#633806" font-family="sans-serif">Loss function</text>
+    <text x="430" y="118" text-anchor="middle" font-size="11" fill="#854F0B" font-family="sans-serif">computes gradient</text>
+    <rect x="555" y="80" width="100" height="50" rx="6" fill="#FAECE7" stroke="#993C1D" stroke-width="1"/>
+    <text x="605" y="101" text-anchor="middle" font-size="12" font-weight="500" fill="#712B13" font-family="sans-serif">Loss score</text>
+    <text x="605" y="118" text-anchor="middle" font-size="11" fill="#993C1D" font-family="sans-serif">∂L/∂W</text>
+    <line x1="555" y1="105" x2="522" y2="105" stroke="#993C1D" stroke-width="1.5" marker-end="url(#ar4)"/>
+    <path d="M340 105 L200 105 L200 108" fill="none" stroke="#BA7517" stroke-width="1.5" marker-end="url(#ar4)"/>
+    <path d="M200 105 L130 105" fill="none" stroke="#BA7517" stroke-width="1.5" marker-end="url(#ar4)"/>
+    <text x="270" y="94" text-anchor="middle" font-size="11" fill="#633806" font-family="sans-serif">← backpropagation</text>
+    <text x="430" y="170" text-anchor="middle" font-size="12" fill="var(--color-text-secondary)" font-family="sans-serif">gradient flows backward through layers</text>
+  </svg>
+  <p><strong>Backpropagation</strong> computes the gradient of the loss with respect to every weight in the network — using the chain rule of calculus. This tells each weight: "if you increase slightly, does the loss go up or down, and by how much?"</p>
+  <p class="m">Then gradient descent applies the update: <span style="font-style:italic;font-family:Georgia,serif">W ← W − α · ∂L/∂W</span>. Every weight gets nudged in the direction that reduces loss.</p>
+</div>
+
+<div id="p5" style="display:none">
+  <div class="card">
+    <p style="font-size:13px;font-weight:500;margin-bottom:.5rem;color:var(--color-text-primary)">Run the full training loop</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:.75rem">
+      <button class="sb" onclick="trainOne()">1 example</button>
+      <button class="sb" onclick="trainBatch()">1 batch (32)</button>
+      <button class="sb" onclick="trainEpoch()">1 epoch (500)</button>
+      <button class="sb" onclick="resetSim()">Reset</button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:.75rem">
+      <div class="icard" style="text-align:center">
+        <div style="font-size:11px;color:var(--color-text-secondary)">Examples seen</div>
+        <div style="font-size:18px;font-weight:500" id="sim_n">0</div>
+      </div>
+      <div class="icard" style="text-align:center">
+        <div style="font-size:11px;color:var(--color-text-secondary)">Loss</div>
+        <div style="font-size:18px;font-weight:500;color:#D85A30" id="sim_loss">—</div>
+      </div>
+      <div class="icard" style="text-align:center">
+        <div style="font-size:11px;color:var(--color-text-secondary)">Accuracy</div>
+        <div style="font-size:18px;font-weight:500;color:#1D9E75" id="sim_acc">—</div>
+      </div>
+      <div class="icard" style="text-align:center">
+        <div style="font-size:11px;color:var(--color-text-secondary)">Epochs</div>
+        <div style="font-size:18px;font-weight:500" id="sim_ep">0</div>
+      </div>
+    </div>
+    <canvas id="lc" height="110" style="width:100%;display:block"></canvas>
+    <div style="font-size:12px;color:var(--color-text-secondary);margin-top:.4rem" id="sim_msg">Press a button to start training.</div>
+  </div>
+  <button class="sb" onclick="sendPrompt('What is an epoch in deep learning?')">What is an epoch? ↗</button>
+  <button class="sb" style="margin-left:8px" onclick="sendPrompt('Why does loss decrease during training?')">Why does loss decrease? ↗</button>
+</div>
+
+</div>
+
+<div style="display:flex;justify-content:space-between;align-items:center;margin-top:1rem">
+  <button class="sb" id="bp" onclick="prev()" disabled style="opacity:.35">← Prev</button>
+  <span style="font-size:13px;color:var(--color-text-secondary)" id="sc">1 / 6</span>
+  <button class="sb" id="bn" onclick="next()">Next →</button>
+</div>
+
+</div>
+
+<script>
+var cur=0, N=6;
+var simN=0, simEp=0, simW=0.05, simLossHist=[], simAccHist=[];
+
+function sig(z){return 1/(1+Math.exp(-z));}
+function go(i){
+  for(var j=0;j<N;j++) document.getElementById('p'+j).style.display=j===i?'':'none';
+  document.querySelectorAll('#tabs .sb').forEach(function(b,j){b.classList.toggle('active',j===i);});
+  cur=i;
+  document.getElementById('sc').textContent=(i+1)+' / '+N;
+  document.getElementById('bp').disabled=i===0;
+  document.getElementById('bp').style.opacity=i===0?.35:1;
+  document.getElementById('bn').disabled=i===N-1;
+  document.getElementById('bn').style.opacity=i===N-1?.35:1;
+  if(i===2) renderPredBars(randomScores());
+  if(i===3) updateLoss(0.12);
+}
+function next(){if(cur<N-1)go(cur+1);}
+function prev(){if(cur>0)go(cur-1);}
+
+function randomScores(){
+  var s=[]; var sum=0;
+  for(var i=0;i<10;i++){s.push(Math.random()); sum+=s[i];}
+  return s.map(function(v){return v/sum;});
+}
+function renderPredBars(scores){
+  var colors=['#888780','#888780','#888780','#888780','#1D9E75','#888780','#888780','#888780','#888780','#888780'];
+  var html='';
+  for(var i=0;i<10;i++){
+    var pct=(scores[i]*100).toFixed(1);
+    html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">'
+      +'<span style="font-size:12px;min-width:14px;color:var(--color-text-secondary)">'+i+'</span>'
+      +'<div class="bar-wrap" style="flex:1"><div class="bar" style="width:'+pct+'%;background:'+colors[i]+'"></div></div>'
+      +'<span style="font-size:12px;min-width:36px;text-align:right;color:var(--color-text-primary)">'+pct+'%</span>'
+      +'</div>';
+  }
+  document.getElementById('pred_bars').innerHTML=html;
+  updateLoss(scores[4]);
+}
+function randomPreds(){renderPredBars(randomScores());}
+function updateLoss(p4){
+  var p=Math.max(p4,0.001);
+  document.getElementById('loss_pred').textContent=p.toFixed(2);
+  document.getElementById('loss_val').textContent='L = −log('+p.toFixed(2)+') = '+(-Math.log(p)).toFixed(2);
+}
+
+function resetSim(){
+  simN=0; simEp=0; simW=0.05+(Math.random()-0.5)*0.1;
+  simLossHist=[]; simAccHist=[];
+  document.getElementById('sim_n').textContent=0;
+  document.getElementById('sim_loss').textContent='—';
+  document.getElementById('sim_acc').textContent='—';
+  document.getElementById('sim_ep').textContent=0;
+  document.getElementById('sim_msg').textContent='Press a button to start training.';
+  drawLC();
+}
+function simStep(){
+  var x=Math.round(Math.random()*9+1);
+  var label=x>=5?1:0;
+  var pred=sig(simW*x);
+  var err=pred-label;
+  simW -= 0.2*err*x;
+  simN++;
+  var loss=Math.pow(err,2);
+  simLossHist.push(+loss.toFixed(4));
+  var acc=simN>0?(simAccHist.length>0?(simAccHist[simAccHist.length-1]*0.97+(Math.abs(err)<0.3?0.03:0)):((Math.abs(err)<0.3?1:0))):0;
+  simAccHist.push(+acc.toFixed(3));
+}
+function trainOne(){simStep(); updateSimUI();}
+function trainBatch(){for(var i=0;i<32;i++)simStep(); updateSimUI();}
+function trainEpoch(){for(var i=0;i<500;i++)simStep(); simEp++; updateSimUI();}
+function updateSimUI(){
+  var l=simLossHist[simLossHist.length-1];
+  var a=simAccHist[simAccHist.length-1];
+  document.getElementById('sim_n').textContent=simN.toLocaleString();
+  document.getElementById('sim_loss').textContent=l.toFixed(3);
+  document.getElementById('sim_acc').textContent=(a*100).toFixed(1)+'%';
+  document.getElementById('sim_ep').textContent=simEp;
+  document.getElementById('sim_msg').textContent='Step '+simN+': loss='+l.toFixed(3)+', accuracy='+Math.round(a*100)+'%';
+  drawLC();
+}
+function drawLC(){
+  var c=document.getElementById('lc');
+  var W=c.offsetWidth||300, H=110;
+  c.width=W; c.height=H;
+  var ctx=c.getContext('2d');
+  ctx.clearRect(0,0,W,H);
+  var dark=window.matchMedia('(prefers-color-scheme:dark)').matches;
+  var gc=dark?'rgba(255,255,255,.07)':'rgba(0,0,0,.06)';
+  var tc=dark?'#888780':'#888780';
+  for(var g=0;g<=3;g++){var gy=H-12-g*(H-20)/3; ctx.strokeStyle=gc;ctx.lineWidth=.5;ctx.beginPath();ctx.moveTo(28,gy);ctx.lineTo(W-4,gy);ctx.stroke();}
+  ctx.fillStyle=tc; ctx.font='10px sans-serif';
+  ctx.fillText('Loss',4,14); ctx.fillText('0',4,H-10); ctx.fillText('Steps →',W/2-22,H-1);
+  if(simLossHist.length<2){ctx.fillStyle=tc;ctx.font='12px sans-serif';ctx.fillText('Chart appears after training',W/2-80,H/2);return;}
+  var maxL=Math.max(...simLossHist,.01);
+  var stride=Math.max(1,Math.floor(simLossHist.length/200));
+  ctx.beginPath(); ctx.strokeStyle='#D85A30'; ctx.lineWidth=1.5;
+  for(var i=0;i<simLossHist.length;i+=stride){
+    var px=28+(W-32)*i/(simLossHist.length-1);
+    var py=H-12-(H-22)*(simLossHist[i]/maxL);
+    i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+  }
+  ctx.stroke();
+}
+go(0);
+window.addEventListener('resize',drawLC);
+</script>
