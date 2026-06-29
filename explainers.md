@@ -33,3 +33,9 @@ no code, just open and explore.
   where you set the inputs, weights, bias and activation function of a single
   neuron and watch how its output changes. Note: the first load takes a few
   seconds while the Python environment downloads.
+
+- **[Transformer architecture explorer](/streamlit_transformer.html)** — A live
+  Streamlit app (also via [stlite](https://github.com/whitphx/stlite)) that walks
+  through the components of the Transformer architecture — embeddings, positional
+  encoding, multi-head attention, feed-forward layers and more — with a short quiz
+  to test your understanding. The first load takes a few seconds.
