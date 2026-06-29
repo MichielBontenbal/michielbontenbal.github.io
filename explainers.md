@@ -27,3 +27,9 @@ no code, just open and explore.
 - **[From text to embeddings](/text_to_embeddings_pipeline.html)** — The full
   pipeline that turns a sentence step by step into the numbers an AI model can
   understand, ending in dense embeddings.
+
+- **[Perceptron visualiser](/perceptron_visualiser.html)** — A live Streamlit
+  app (running entirely in your browser via [stlite](https://github.com/whitphx/stlite))
+  where you set the inputs, weights, bias and activation function of a single
+  neuron and watch how its output changes. Note: the first load takes a few
+  seconds while the Python environment downloads.
