@@ -39,3 +39,9 @@ no code, just open and explore.
   through the components of the Transformer architecture — embeddings, positional
   encoding, multi-head attention, feed-forward layers and more — with a short quiz
   to test your understanding. The first load takes a few seconds.
+
+- **[The Lego way of building CNNs](/lego-cnn.html)** — Snap together a
+  convolutional neural network like Lego bricks: drag layers — convolution,
+  max-pooling, flatten and softmax — into a stack, then train it right in your
+  browser to recognise handwritten MNIST digits and see how each layer shapes the
+  result.
