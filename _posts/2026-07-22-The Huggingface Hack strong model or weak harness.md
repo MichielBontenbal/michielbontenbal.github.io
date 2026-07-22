@@ -22,8 +22,10 @@ The AI expert Addy Osmani makes exactly this point in [The New Software Lifecycl
 
 ## Discussion
 
-Where do we go from here? What is the take away? Let's repeat it one more time: an agent is a model plus the harness. So if you release a new model, always adjust the harness. This could be anything: (system) prompt, skills, context, permissions, etc. And also: we need better testing tools for harnesses. Harness engineering has become a new field, rapidly evolving with new ideas every day. 
+Where do we go from here? What is the take away? 
 
-Using an old harness with a new model can be dangerous, as this (extreme) example shows. Developers have to know their harness and model to fully understand what increasingly powerful agents - with all their security risks - are capable of.
+Let's repeat it one more time: an agent is a model plus a harness. So if you start using a new model, always adjust the harness. In practice this could be any part of the harness: (system) prompt, skills, context, permissions, etc. Do your checks before using the new model. And also: we need better testing tools for harnesses. Harness engineering has become a new field, rapidly evolving with new ideas being implemented every day. 
+
+Using an old harness with a new model can be dangerous, as this (extreme) example shows. Developers have to know their harness to fully understand what increasingly powerful agents - with all their security risks - are capable of.
 
 <i>AI assisted in writing this article.</i>
