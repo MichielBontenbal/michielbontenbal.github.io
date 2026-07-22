@@ -2,6 +2,8 @@
 
 <i>Published on July 22, 2026 by Michiel Bontenbal.</i>
 
+<i>I recently gave a presentation on agents and coding harnesses, please find it [here](https://michielbontenbal.github.io/coding_harness.html)</i>
+
 ## What happened
 
 In July 2026 Hugging Face — the popular platform for sharing AI models and datasets — disclosed that someone had broken into its systems. The surprise was who: not a human hacker, but an autonomous AI agent acting on its own. According to their [security incident disclosure](https://huggingface.co/blog/security-incident-july-2026), it slipped in through a weakness in how uploaded files were handled and worked its way into internal systems. Public models and datasets were not affected, but some internal files and passwords were exposed.
