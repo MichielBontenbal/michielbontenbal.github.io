@@ -1,13 +1,13 @@
 
 # But what is a Continual Harness?
 
-An agent is an LLM that is able to use tools, memory, context etc.  Together we call this the Agent Harness.
+An agent, such as Claude Code, is an LLM that is able to use tools, memory, context etc.  Together we call this the Agent Harness.
 
 Agent  = LLM + Harness
 
 In these agents there are what we call loops, e.g.: reason - act - observe. This is a classic loop going back to Barton and Sutton's classic book on reinforced learning. See the image here:
 
-![Agent loop](agentic_loop.png)
+![Agent loop](https://github.com/MichielBontenbal/michielbontenbal.github.io/blob/main/_posts/agentic_loop.png?raw=true)
 
 Agents need these loops to improve  their answer. They can do one round, but if the answer is still unsatisfactory, they'll do another and another. 
 
@@ -27,11 +27,12 @@ The core innovation in Prime Agent is something called a Continual Harness. Inst
 
 This builds on foundational research by Alex Zhang, who first outlined a concept called a *Recursive Language Model* (RLM).
 
-The RLM concept was published in a [blog post](https://alexzhang13.github.io/blog/2025/rlm/) in October 2025, before being formalized (together with Tim Kraska) in an [arXiv
-paper](https://arxiv.org/abs/2512.24601) that December. Prime Intellect took that theor
-etical framework and turned it into production-ready infrastructure.
+The RLM concept was published in a [blog post](https://alexzhang13.github.io/blog/2025/rlm/) in October 2025, before being formalized (together with Tim Kraska and Omar Khattab) in an [arXiv
+paper](https://arxiv.org/abs/2512.24601) that December. The Continual Harness [paper](https://arxiv.org/abs/2605.09998) was published in May 2026.
 
-And the results? The system scored 95.5% on the main reasoning challenge (ARC-AGI-3 benchmark) and surpasses established human-expert baselines, meaning the system outperformed the humans that the benchmark was calibrated against.
+Prime Intellect took these two concepts and turned it into production-ready infrastructure.
+
+And the results? The system scored a baffling 95.5% on the main reasoning challenge ([ARC-AGI-3 benchmark](https://arcprize.org/arc-agi/3)) and surpasses established human-expert baselines, meaning the system outperformed the humans that the benchmark was calibrated against.
 
 I guess we will hear a lot from this new model. I will use it. Read more on it in Prime Intellect's [blog post](https://www.primeintellect.ai/blog/rlm).
 
