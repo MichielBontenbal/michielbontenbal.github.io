@@ -15,15 +15,6 @@ no code, just open and explore.
   neuron learn to detect "is the number big?", step by step, as it adjusts its
   weights through training.
 
-- **[The deep learning training loop](/chollet_deep_learning_flow.html)** — A
-  tabbed walkthrough of how a deep learning model learns: input, forward pass,
-  predictions, loss function, backpropagation, and the full training loop
-  (after François Chollet's diagram).
-
-- **[From text to vectors](/text_to_vectors_explainer.html)** — Type a sentence
-  and watch it transform: tokenization, building a vocabulary, and turning
-  tokens into one-hot vectors.
-
 - **[From text to embeddings](/text_to_embeddings_pipeline.html)** — The full
   pipeline that turns a sentence step by step into the numbers an AI model can
   understand, ending in dense embeddings.
@@ -41,7 +32,9 @@ no code, just open and explore.
   to test your understanding. The first load takes a few seconds.
 
 - **[The Lego way of building CNNs](/lego-cnn.html)** — Snap together a
-  convolutional neural network like Lego bricks: drag layers — convolution,
-  max-pooling, flatten and softmax — into a stack, then train it right in your
-  browser to recognise handwritten MNIST digits and see how each layer shapes the
-  result.
+  convolutional neural network for MNIST like Lego bricks: stack and reorder
+  convolution, max-pooling, flatten, linear and softmax layers, setting every
+  parameter by hand, then pick your learning rate, epochs, loss function and
+  optimizer. Each run is a simulated training curve; you get five iterations,
+  a leaderboard ranking them by test accuracy, and the PyTorch code for the
+  model you built.
