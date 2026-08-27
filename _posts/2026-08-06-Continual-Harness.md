@@ -34,6 +34,6 @@ Prime Intellect took these two concepts and turned it into production-ready infr
 
 And the results? The system scored a baffling 95.5% on the main reasoning challenge ([ARC-AGI-3 benchmark](https://arcprize.org/arc-agi/3)) and surpasses established human-expert baselines, meaning the system outperformed the humans that the benchmark was calibrated against.
 
-I guess we will hear a lot from this new model. I will use it. Read more on it in Prime Intellect's [blog post](https://www.primeintellect.ai/blog/rlm).
+I guess we will hear a lot from this new agent. I will use it. Read more on it in Prime Intellect's [blog post](https://www.primeintellect.ai/blog/rlm).
 
 P.S. to me this also sounds like early work on [Double Loop learning](https://en.wikipedia.org/wiki/Double-loop_learning) by Chris Argyris, who studied organisational learning not AI.  
