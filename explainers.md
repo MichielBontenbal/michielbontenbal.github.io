@@ -47,3 +47,12 @@ no code, just open and explore.
   Web (WebAssembly), in a Web Worker so the page stays responsive. No server, no
   API key — your prompt never leaves your laptop. The first run downloads about
   128 MB of weights, which the browser then caches.
+
+- **[Convolutions with MNIST](/convolutions_mnist.html)** — Work through a
+  convolution one step at a time on a real handwritten digit: pick an MNIST
+  image, turn it into the 28 × 28 matrix of pixel values the network actually
+  sees, choose a 3 × 3 or 5 × 5 kernel (vertical or horizontal line detection,
+  blur, sharpen, outline — or type your own weights), and see the resulting
+  feature map. Hovering any output pixel highlights the patch it came from and
+  spells out the multiply-and-add behind it. The digits are real MNIST test
+  images exported with torchvision, so the page needs no install and no server.
