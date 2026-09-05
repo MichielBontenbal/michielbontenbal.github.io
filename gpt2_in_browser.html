@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Going back in time: run GPT-2 like it's 2019</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #F5F0E8; color: #1a1a1a; padding: 1.5rem; max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 26px; font-weight: 500; margin-bottom: .75rem; }
+  h2 { font-size: 19px; font-weight: 500; margin: 1.75rem 0 .6rem; }
+  p { font-size: 16px; line-height: 1.7; margin-bottom: .75rem; }
+  p.muted, .muted { color: #5f5e5a; }
+  ul { margin: 0 0 .75rem 1.2rem; }
+  li { font-size: 16px; line-height: 1.7; margin-bottom: .35rem; }
+  a { color: #0c447c; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 14px; background: #e7e4db; padding: 1px 5px; border-radius: 4px; }
+  .card { background: #f1efe8; border-radius: 12px; padding: 1.25rem 1.5rem; margin-bottom: 1rem; border: 0.5px solid #d3d1c7; }
+  .pill { display: inline-block; font-size: 14px; padding: 3px 10px; border-radius: 20px; font-weight: 500; }
+  .pill-purple { background: #EEEDFE; color: #3C3489; }
+  .pill-teal   { background: #E1F5EE; color: #085041; }
+  .pill-amber  { background: #FAEEDA; color: #633806; }
+  textarea { width: 100%; font-family: inherit; font-size: 16px; line-height: 1.6; padding: .7rem .8rem; border: 0.5px solid #b4b2a9; border-radius: 8px; background: #fff; color: #1a1a1a; resize: vertical; min-height: 80px; }
+  button { background: #fff; border: 0.5px solid #b4b2a9; border-radius: 8px; padding: 8px 20px; font-size: 16px; color: #1a1a1a; cursor: pointer; font-family: inherit; transition: background .15s; }
+  button:hover:not(:disabled) { background: #f0ede6; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  button.primary { background: #e6f1fb; border-color: #85b7eb; color: #0c447c; }
+  button.primary:hover:not(:disabled) { background: #d5e7f8; }
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: .9rem 0 0; }
+  .row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .row label { font-size: 15px; min-width: 130px; color: #5f5e5a; }
+  .row input[type=range] { flex: 1; accent-color: #3C3489; }
+  .row .val { font-size: 15px; min-width: 44px; text-align: right; font-variant-numeric: tabular-nums; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 20px; }
+  #output { background: #fff; border: 0.5px solid #d3d1c7; border-radius: 8px; padding: .9rem 1rem; font-size: 16px; line-height: 1.75; min-height: 120px; white-space: pre-wrap; word-wrap: break-word; }
+  #output .prompt-part { font-weight: 500; }
+  #output .gen-part { color: #3C3489; }
+  #output .placeholder { color: #888780; }
+  .caret { display: inline-block; width: 7px; height: 17px; background: #3C3489; vertical-align: -3px; animation: blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  .spinner { display: none; width: 14px; height: 14px; border-radius: 50%; border: 2px solid #cfccc2; border-top-color: #3C3489; animation: spin .8s linear infinite; vertical-align: -2px; margin-right: 8px; flex: none; }
+  .spinner.on { display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #statusrow { display: flex; align-items: center; margin-top: .9rem; min-height: 22px; }
+  #status { font-size: 15px; color: #5f5e5a; }
+  .bar { height: 6px; background: #e0ddd3; border-radius: 3px; overflow: hidden; margin-top: .55rem; display: none; }
+  .bar.on { display: block; }
+  .bar > div { height: 100%; width: 0%; background: #3C3489; border-radius: 3px; transition: width .2s; }
+  .bar.indeterminate > div { width: 35%; animation: slide 1.3s ease-in-out infinite; transition: none; }
+  @keyframes slide { 0% { margin-left: -35%; } 100% { margin-left: 100%; } }
+  .warn { font-size: 14px; line-height: 1.6; color: #633806; background: #FAEEDA; border-radius: 8px; padding: .6rem .8rem; margin-top: .7rem; display: none; }
+  .warn.on { display: block; }
+  .toggle { display: flex; align-items: center; gap: 7px; font-size: 15px; color: #5f5e5a; }
+  .footer { font-size: 14px; color: #888780; margin-top: 2rem; line-height: 1.6; }
+  @media (prefers-color-scheme: dark) {
+    body { background: #1a1a1a; color: #e8e6df; }
+    p, li { color: #e8e6df; }
+    p.muted, .muted, .row label, #status { color: #b4b2a9; }
+    a { color: #85b7eb; }
+    code { background: #2e2e2c; }
+    .card { background: #252523; border-color: #3a3a38; }
+    .pill-purple { background: #3C3489; color: #CECBF6; }
+    .pill-teal   { background: #085041; color: #9FE1CB; }
+    .pill-amber  { background: #633806; color: #FAC775; }
+    textarea, button { background: #2e2e2c; border-color: #3a3a38; color: #e8e6df; }
+    button:hover:not(:disabled) { background: #3a3a38; }
+    button.primary { background: #0c447c; border-color: #378add; color: #b5d4f4; }
+    button.primary:hover:not(:disabled) { background: #10559a; }
+    .row input[type=range] { accent-color: #7F77DD; }
+    .bar { background: #3a3a38; }
+    .spinner { border-color: #4a4a47; border-top-color: #7F77DD; }
+    .warn { background: #633806; color: #FAC775; }
+    .bar > div, .caret { background: #7F77DD; }
+    #output { background: #1a1a1a; border-color: #3a3a38; }
+    #output .gen-part { color: #CECBF6; }
+  }
+  @media (max-width: 560px) { .grid-2 { grid-template-columns: 1fr; } .row label { min-width: 110px; } }
+</style>
+</head>
+<body>
+
+<h1>Going back in time: run GPT-2 like it's 2019</h1>
+
+<p class="muted">Type a prompt, press <strong>Generate</strong>, and watch GPT-2 continue
+it word by word. There is no server involved: the model is downloaded once into your
+browser and every token is computed on your own machine.</p>
+
+<div class="card">
+  <label for="prompt" style="font-size:15px;color:#5f5e5a;display:block;margin-bottom:.5rem;">Your prompt</label>
+  <textarea id="prompt" spellcheck="false">The best thing about studying artificial intelligence is</textarea>
+
+  <div class="btn-row">
+    <button class="primary" id="run">Generate</button>
+    <button id="stop" disabled>Stop</button>
+    <span class="toggle"><input type="checkbox" id="sample" checked> sampling (uncheck for greedy)</span>
+  </div>
+
+  <div id="statusrow"><span class="spinner" id="spin"></span><span id="status">Model not loaded yet — the first generation downloads about 128&nbsp;MB.</span></div>
+  <div class="bar" id="bar"><div id="barfill"></div></div>
+  <div class="warn" id="warn"></div>
+</div>
+
+<div class="card">
+  <div class="grid-2">
+    <div class="row"><label for="ntok">New tokens</label><input type="range" id="ntok" min="10" max="200" step="10" value="60"><span class="val" id="ntokv">60</span></div>
+    <div class="row"><label for="temp">Temperature</label><input type="range" id="temp" min="0.1" max="1.5" step="0.05" value="0.9"><span class="val" id="tempv">0.90</span></div>
+    <div class="row"><label for="topk">Top-k</label><input type="range" id="topk" min="1" max="100" step="1" value="50"><span class="val" id="topkv">50</span></div>
+    <div class="row"><label for="rep">Repetition penalty</label><input type="range" id="rep" min="1" max="2" step="0.05" value="1.1"><span class="val" id="repv">1.10</span></div>
+  </div>
+  <p class="muted" style="margin:.4rem 0 0;font-size:15px;">Low temperature and low top-k make the text safe and repetitive;
+  high values make it surprising and often nonsensical. Try the extremes.</p>
+</div>
+
+<h2>Output</h2>
+<div id="output"><span class="placeholder">The generated text will appear here.</span></div>
+
+<h2>What is actually happening</h2>
+<p>GPT-2 (124M parameters, released by OpenAI in 2019) is a <em>language model</em>: given a
+sequence of tokens it predicts a probability distribution over the next token. Generation is
+just that step, repeated — sample a token, append it, predict again. Everything you change
+above affects how that sample is drawn:</p>
+<ul>
+  <li><span class="pill pill-purple">temperature</span> flattens or sharpens the probability
+  distribution before sampling. At 0.1 the model almost always picks its top choice; at 1.5 unlikely tokens get a real chance.</li>
+  <li><span class="pill pill-teal">top-k</span> throws away everything except the k most likely
+  tokens, so the model can never pick something wildly improbable.</li>
+  <li><span class="pill pill-amber">repetition penalty</span> lowers the score of tokens that
+  already appeared, which is what stops GPT-2 from looping on the same phrase forever.</li>
+</ul>
+<p>Unchecking <em>sampling</em> switches to greedy decoding: always the single most likely token.
+The output becomes deterministic — the same prompt gives the same continuation every time — and
+usually rather dull.</p>
+
+<h2>Why the quality is bad</h2>
+<p>Your first reaction will probably be that the output is rubbish: it drifts off topic, invents
+quotes, contradicts itself, and ignores questions. That is worth sitting with, because it is the
+honest baseline. What you are looking at is <em>pure next-word prediction</em> and nothing else.
+GPT-2 was trained on one objective — given this text, which token comes next in a web page? — and
+it has no notion of being asked something, of being helpful, or of whether any of it is true. If
+there was ever a <a href="https://dl.acm.org/doi/10.1145/3442188.3445922">stochastic parrot</a>,
+this is it: it reproduces the statistical patterns of the text it was trained on, convincingly
+enough to look like language, with no model of the world behind it.</p>
+
+<p>What separates this from the assistants you are used to is mostly what came <em>after</em>
+pre-training. A model like ChatGPT or Claude starts from the same next-token objective, and is then
+put through further training stages that GPT-2 never had:</p>
+<ul>
+  <li><strong>Instruction tuning</strong> — further training on examples of instructions and good
+  responses, which is what teaches a model that a question is meant to be answered rather than
+  continued.</li>
+  <li><strong>Reinforcement Learning from Human Feedback (RLHF)</strong> — humans rank competing
+  answers, a reward model learns to predict those rankings, and the model is optimised against it.
+  This is where most of the helpfulness, the refusals, and the recognisable assistant tone come
+  from. GPT-2 (2019) predates it entirely.</li>
+</ul>
+<p>Scale is the other half of the story: this is the 124M-parameter version, some four orders of
+magnitude smaller than current frontier models, trained on roughly 40 GB of scraped web pages, and
+it can only see 1024 tokens of context. So when you compare the text below to ChatGPT, you are not
+mainly seeing a gap in size — you are seeing what a language model is before anyone has taught it
+to behave like an assistant.</p>
+
+<h2>How this page runs a neural network without a server</h2>
+<p>The page loads <a href="https://huggingface.co/docs/transformers.js">Transformers.js</a>, which
+runs models through <strong>ONNX Runtime Web</strong> — the same ONNX runtime you would use in
+Python, compiled to WebAssembly so it executes inside the browser tab. The weights are a
+quantised (8-bit) ONNX export of GPT-2 hosted on the Hugging Face CDN; the browser fetches them
+once and keeps them in its Cache Storage, so a second visit starts instantly.</p>
+<p>One detail worth stealing: the model runs in a <strong>Web Worker</strong>, on a thread of
+its own. Run it on the main thread instead and the tab freezes solid for the whole generation —
+no text appearing token by token, and a Stop button that cannot be clicked. Because the worker is
+busy inside WebAssembly it cannot read incoming messages either, so Stop terminates it outright;
+the weights stay in the cache, so the next run only reloads them.</p>
+
+<p>This means the page is <em>fully static</em>. It is served from GitHub Pages, which only ever
+hands out files — no Python, no GPU, no API key, no inference bill. Your prompt never leaves your
+laptop. The whole thing is one HTML file you can view the source of, copy, and host yourself.</p>
+
+<p class="footer">Model: <a href="https://huggingface.co/Xenova/gpt2">Xenova/gpt2</a> ·
+Runtime: <a href="https://github.com/xenova/transformers.js">Transformers.js 2.17</a> ·
+Works best in a recent Chrome, Edge, Firefox or Safari on a laptop.</p>
+
+<script type="module">
+const LIB = 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
+const MODEL = 'Xenova/gpt2';
+
+// ── Inference runs in a Web Worker when it can ────────────────────────────────
+// ONNX Runtime Web executes on whatever thread it is given. On the main thread it
+// freezes the whole page for the length of the generation — no streaming text, no
+// working Stop button. So the model lives in a worker, built here from a Blob so
+// this stays a single, copy-able HTML file. Opened straight from disk (file://)
+// a blob module worker is not allowed, so there is a main-thread fallback below.
+const workerSource = `
+import { pipeline, env } from '${LIB}';
+env.allowLocalModels = false;   // always fetch from the Hugging Face CDN
+
+let gen = null;
+self.onmessage = async ({ data }) => {
+  try {
+    if (!gen) {
+      gen = await pipeline('text-generation', '${MODEL}', {
+        progress_callback: d => self.postMessage({ type: 'progress', d })
+      });
+      self.postMessage({ type: 'ready' });
+    }
+    const out = await gen(data.prompt, {
+      ...data.opts,
+      callback_function: beams => self.postMessage({
+        type: 'token',
+        text: gen.tokenizer.decode(beams[0].output_token_ids, { skip_special_tokens: true })
+      })
+    });
+    self.postMessage({ type: 'done', text: out[0].generated_text });
+  } catch (err) {
+    self.postMessage({ type: 'error', message: String(err && err.message || err) });
+  }
+};
+`;
+
+const $ = id => document.getElementById(id);
+const promptEl = $('prompt'), runBtn = $('run'), stopBtn = $('stop'), sampleEl = $('sample');
+const statusEl = $('status'), spin = $('spin'), bar = $('bar'), barfill = $('barfill'), warnEl = $('warn'), outEl = $('output');
+
+// Slider labels.
+for (const [id, dp] of [['ntok', 0], ['temp', 2], ['topk', 0], ['rep', 2]]) {
+  const el = $(id), out = $(id + 'v');
+  const sync = () => out.textContent = Number(el.value).toFixed(dp);
+  el.addEventListener('input', sync); sync();
+}
+
+let worker = null;        // live worker, if any
+let workerBroken = false; // set once we know workers cannot run here
+let mainGen = null;       // main-thread pipeline, only used as a fallback
+let loaded = false, busy = false, tokens = 0, t0 = 0, currentPrompt = '';
+
+// ── Feedback helpers ──────────────────────────────────────────────────────────
+function say(msg, { spinning = false, progress = null } = {}) {
+  statusEl.textContent = msg;
+  spin.classList.toggle('on', spinning);
+  if (progress === null) {
+    bar.classList.remove('on', 'indeterminate');
+  } else if (progress === 'indeterminate') {
+    bar.classList.add('on', 'indeterminate');
+  } else {
+    bar.classList.add('on'); bar.classList.remove('indeterminate');
+    barfill.style.width = progress.toFixed(1) + '%';
+  }
+}
+function warn(html) { warnEl.innerHTML = html; warnEl.classList.add('on'); }
+
+function render(prompt, full, caret) {
+  const tail = full.startsWith(prompt) ? full.slice(prompt.length) : full;
+  outEl.textContent = '';
+  const a = document.createElement('span'); a.className = 'prompt-part'; a.textContent = prompt;
+  const b = document.createElement('span'); b.className = 'gen-part'; b.textContent = tail;
+  outEl.append(a, b);
+  if (caret) { const c = document.createElement('span'); c.className = 'caret'; outEl.append(c); }
+}
+
+function finish(msg) {
+  busy = false; runBtn.disabled = false; stopBtn.disabled = true;
+  say(msg);
+}
+
+// ── Messages from either engine ───────────────────────────────────────────────
+function handle(m) {
+  if (m.type === 'progress') {
+    const d = m.d;
+    if (d.status === 'progress' && d.progress != null && d.total > 1e6) {
+      say(`Downloading the model — ${(d.loaded / 1e6).toFixed(0)} of ${(d.total / 1e6).toFixed(0)} MB. This happens once; afterwards it loads from cache.`,
+          { spinning: true, progress: d.progress });
+    } else if (d.status === 'download' || d.status === 'initiate') {
+      say('Fetching model files…', { spinning: true, progress: 'indeterminate' });
+    }
+  } else if (m.type === 'ready') {
+    loaded = true; t0 = performance.now();
+    say('Model loaded — generating…', { spinning: true, progress: 'indeterminate' });
+  } else if (m.type === 'token') {
+    tokens++;
+    render(currentPrompt, m.text, true);
+    const cap = Number($('ntok').value);
+    say(`Generating… ${tokens} of ${cap} tokens`, { spinning: true, progress: 100 * tokens / cap });
+  } else if (m.type === 'done') {
+    render(currentPrompt, m.text, false);
+    const secs = (performance.now() - t0) / 1000;
+    finish(`Done — ${tokens} tokens in ${secs.toFixed(1)}s (${(tokens / secs).toFixed(1)} tokens/s).`);
+  } else if (m.type === 'error') {
+    render(currentPrompt, currentPrompt, false);
+    finish('Something went wrong: ' + m.message);
+  }
+}
+
+function buildOptions() {
+  const doSample = sampleEl.checked;
+  const opts = {
+    max_new_tokens: Number($('ntok').value),
+    repetition_penalty: Number($('rep').value),
+    do_sample: doSample
+  };
+  if (doSample) { opts.temperature = Number($('temp').value); opts.top_k = Number($('topk').value); }
+  return opts;
+}
+
+// ── Fallback: run on the main thread (file://, or no worker support) ──────────
+async function runOnMainThread(prompt, opts) {
+  stopBtn.disabled = true;   // nothing to interrupt: the thread is about to block
+  warn('<strong>No Web Worker available</strong> — this page was opened straight from disk, ' +
+       'so the model has to run on the main thread. It still works, but the page will be frozen ' +
+       'while it generates: nothing moves until the text appears. Serve the file over http (or ' +
+       'open it from the website) for live, token-by-token output.');
+  say(loaded ? 'Generating on the main thread — the page will freeze for a moment…'
+             : 'Loading the model on the main thread — the page will freeze while it downloads…',
+      { spinning: true, progress: 'indeterminate' });
+
+  // Let the browser paint that warning before we block the thread.
+  await new Promise(r => setTimeout(r, 60));
+  await new Promise(r => requestAnimationFrame(r));
+
+  try {
+    if (!mainGen) {
+      const { pipeline, env } = await import(LIB);
+      env.allowLocalModels = false;
+      mainGen = await pipeline('text-generation', MODEL, { progress_callback: d => handle({ type: 'progress', d }) });
+      loaded = true; t0 = performance.now();
+    }
+    const out = await mainGen(prompt, {
+      ...opts,
+      callback_function: () => { tokens++; }
+    });
+    handle({ type: 'done', text: out[0].generated_text });
+  } catch (err) {
+    handle({ type: 'error', message: String(err && err.message || err) });
+  }
+}
+
+// ── Worker plumbing ───────────────────────────────────────────────────────────
+function startWorker(prompt, opts) {
+  if (!worker) {
+    try {
+      const url = URL.createObjectURL(new Blob([workerSource], { type: 'text/javascript' }));
+      worker = new Worker(url, { type: 'module' });
+      URL.revokeObjectURL(url);
+    } catch {
+      workerBroken = true; worker = null;
+      return runOnMainThread(prompt, opts);
+    }
+    worker.onmessage = ({ data }) => handle(data);
+    // A blob module worker dies asynchronously on file:// — fall back when it does.
+    worker.onerror = e => {
+      e.preventDefault?.();
+      try { worker.terminate(); } catch {}
+      worker = null; workerBroken = true; loaded = false;
+      if (busy) runOnMainThread(currentPrompt, buildOptions());
+    };
+  }
+  worker.postMessage({ prompt, opts });
+}
+
+// ── Main entry point ──────────────────────────────────────────────────────────
+function generate() {
+  if (busy) return;
+  const prompt = promptEl.value.trim();
+  if (!prompt) { say('Type a prompt first.'); return; }
+
+  busy = true; runBtn.disabled = true; stopBtn.disabled = workerBroken;
+  currentPrompt = prompt; tokens = 0; t0 = performance.now();
+  render(prompt, prompt, true);
+  say(loaded ? 'Starting…' : 'Starting up — fetching the model…', { spinning: true, progress: 'indeterminate' });
+
+  const opts = buildOptions();
+  if (workerBroken) runOnMainThread(prompt, opts);
+  else startWorker(prompt, opts);
+}
+
+// The worker is busy inside a WASM call and cannot read messages mid-generation,
+// so stopping means terminating it. The weights stay in the browser cache, so the
+// next run reloads them from disk rather than downloading again.
+stopBtn.addEventListener('click', () => {
+  if (!worker) return;
+  worker.terminate(); worker = null; loaded = false;
+  outEl.querySelector('.caret')?.remove();
+  finish('Stopped. (The next run reloads the model from your browser cache — a few seconds.)');
+});
+
+runBtn.addEventListener('click', generate);
+promptEl.addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') generate();
+});
+</script>
+
+</body>
+</html>

@@ -38,3 +38,12 @@ no code, just open and explore.
   optimizer. Each run is a simulated training curve; you get five iterations,
   a leaderboard ranking them by test accuracy, and the PyTorch code for the
   model you built.
+
+- **[Going back in time: run GPT-2 like it's 2019](/gpt2_in_browser.html)** — Type a prompt and watch
+  GPT-2 continue it, token by token, with sliders for temperature, top-k,
+  repetition penalty and length. The 124M-parameter model itself runs on your
+  own machine: a quantised ONNX export executed by
+  [Transformers.js](https://github.com/xenova/transformers.js) and ONNX Runtime
+  Web (WebAssembly), in a Web Worker so the page stays responsive. No server, no
+  API key — your prompt never leaves your laptop. The first run downloads about
+  128 MB of weights, which the browser then caches.
