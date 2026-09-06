@@ -1,0 +1,240 @@
+<style>
+:root{
+  --color-background-primary:#FFFFFF;
+  --color-background-secondary:#FFFFFF;
+  --color-background-tertiary:#EDE8DF;
+  --color-border-secondary:#C9C2B8;
+  --color-border-tertiary:#DDD8D0;
+  --color-text-primary:#002B5C;
+  --color-text-secondary:#3D5C82;
+}
+*{box-sizing:border-box}
+.t2v-root{font-family:Calibri,"Segoe UI",Candara,Optima,sans-serif;color:var(--color-text-primary)}
+p,span,div,button,input,label{font-family:inherit}
+.sb{background:var(--color-background-secondary);border:0.5px solid var(--color-border-secondary);border-radius:8px;padding:8px 18px;font-size:15px;color:var(--color-text-primary);cursor:pointer;transition:background .15s;font-family:inherit}
+.sb:hover{background:var(--color-background-tertiary)}
+.sb.on{background:#E6F1FB;border-color:#85B7EB;color:#0C447C}
+.card{background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:12px;padding:1rem 1.25rem;margin-bottom:.75rem}
+.icard{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:8px;padding:.65rem 1rem}
+p{margin:0 0 .55rem;color:var(--color-text-primary);font-size:15px;line-height:1.7}
+p.m{color:var(--color-text-secondary);font-size:14px}
+.pill{display:inline-block;font-size:12px;padding:2px 9px;border-radius:20px;font-weight:500;vertical-align:middle}
+.pp{background:#EEEDFE;color:#3C3489}
+.pt{background:#E1F5EE;color:#085041}
+.pa{background:#FAEEDA;color:#633806}
+.pg{background:#EAF3DE;color:#27500A}
+.pc{background:#FAECE7;color:#712B13}
+.tok{display:inline-block;padding:4px 10px;border-radius:6px;font-size:14px;font-weight:500;margin:3px;cursor:default;transition:opacity .2s}
+.step-dot{width:10px;height:10px;border-radius:50%;background:var(--color-border-secondary);display:inline-block;margin:0 3px;cursor:pointer;transition:background .15s;border:none;padding:0;vertical-align:middle}
+.step-dot.on{background:#378ADD}
+.onehot-col{display:flex;flex-direction:column;gap:2px;align-items:center}
+.onehot-cell{width:34px;height:28px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;transition:all .3s;border:0.5px solid var(--color-border-tertiary);background:var(--color-background-primary);color:var(--color-text-secondary)}
+.onehot-cell.hot{background:#E1F5EE;border-color:#0F6E56;color:#085041}
+</style>
+
+<div class="t2v-root" style="padding:1.25rem;background:#F5F0E8;border-radius:12px">
+
+<div style="margin-bottom:1.25rem">
+  <div style="font-size:13px;color:var(--color-text-secondary);margin-bottom:.6rem">Type your own sentence and watch it transform — or use the example:</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <input type="text" id="txt_input" value="The cat sat on the mat" style="flex:1;min-width:180px;font-size:15px;padding:8px 12px;border-radius:8px;border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);color:var(--color-text-primary)">
+    <button class="sb" onclick="runPipeline()">Transform</button>
+  </div>
+</div>
+
+<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1.25rem;align-items:center" id="step_nav">
+  <button class="sb on" onclick="goStep(0)">1 · Raw text</button>
+  <button class="sb" onclick="goStep(1)">2 · Standardise</button>
+  <button class="sb" onclick="goStep(2)">3 · Tokenise</button>
+  <button class="sb" onclick="goStep(3)">4 · Index</button>
+  <button class="sb" onclick="goStep(4)">5 · Encode</button>
+</div>
+
+<div id="panels">
+
+<div id="s0">
+  <div class="card">
+    <p style="font-size:13px;font-weight:500;margin-bottom:.6rem">Your raw text</p>
+    <div class="icard" style="font-size:20px;font-weight:500;color:var(--color-text-primary)" id="raw_display">The cat sat on the mat.</div>
+  </div>
+  <p>Computers can't read words. They only understand <strong>numbers</strong>. So before we feed text to an AI, we have to convert it into numbers — one step at a time. This pipeline shows exactly how that works.</p>
+  <p class="m">Press "Next" to begin, or click any step above to jump straight to it.</p>
+</div>
+
+<div id="s1" style="display:none">
+  <div class="card">
+    <p style="font-size:13px;font-weight:500;margin-bottom:.5rem">Before and after standardisation</p>
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px">
+      <div class="icard">
+        <div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:4px"><span class="pill pc">before</span> original</div>
+        <div style="font-size:16px;font-weight:500;color:var(--color-text-primary)" id="std_before">The cat sat on the mat.</div>
+      </div>
+      <div class="icard">
+        <div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:4px"><span class="pill pt">after</span> standardised</div>
+        <div style="font-size:16px;font-weight:500;color:#085041" id="std_after">the cat sat on the mat</div>
+      </div>
+    </div>
+    <div style="margin-top:.75rem;font-size:13px;color:var(--color-text-secondary)">What changed: <span id="std_changes"></span></div>
+  </div>
+  <p>First, we tidy up the text. We make everything <strong>lowercase</strong> and remove punctuation like full stops and commas. Why? Because "The" and "the" mean the same thing — we don't want the computer to think they're different words.</p>
+  <p class="m">Think of it like washing vegetables before cooking — you just clean it up before doing the real work.</p>
+</div>
+
+<div id="s2" style="display:none">
+  <div class="card">
+    <p style="font-size:13px;font-weight:500;margin-bottom:.5rem">Splitting into tokens</p>
+    <div class="icard" style="margin-bottom:.6rem">
+      <div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:6px">Click any token to highlight it</div>
+      <div id="tok_display" style="line-height:2.2"></div>
+    </div>
+    <div style="font-size:13px;color:var(--color-text-secondary)" id="tok_count"></div>
+  </div>
+  <p>Next, we split the sentence into individual <strong>tokens</strong> — usually just individual words. Each word becomes its own unit that we can process separately.</p>
+  <p class="m">Notice that "the" appears twice! That's fine — each occurrence is its own token and will be looked up separately.</p>
+</div>
+
+<div id="s3" style="display:none">
+  <div class="card">
+    <p style="font-size:13px;font-weight:500;margin-bottom:.5rem">Every word gets a number (an index)</p>
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:14px">
+        <thead>
+          <tr>
+            <td style="padding:6px 10px;color:var(--color-text-secondary);font-weight:500;border-bottom:0.5px solid var(--color-border-tertiary)">token</td>
+            <td style="padding:6px 10px;color:var(--color-text-secondary);font-weight:500;border-bottom:0.5px solid var(--color-border-tertiary)">index in vocabulary</td>
+            <td style="padding:6px 10px;color:var(--color-text-secondary);font-weight:500;border-bottom:0.5px solid var(--color-border-tertiary)">note</td>
+          </tr>
+        </thead>
+        <tbody id="idx_table"></tbody>
+      </table>
+    </div>
+  </div>
+  <p>The AI has a big list of words called a <strong>vocabulary</strong> — like a dictionary. Each word has a position number (its index). We look up each token and replace it with that number.</p>
+  <p class="m">That's why "the" gets the same number both times — it's the same word in the dictionary!</p>
+</div>
+
+<div id="s4" style="display:none">
+  <div class="card">
+    <p style="font-size:13px;font-weight:500;margin-bottom:.6rem">One-hot encoding — turning an index into a vector</p>
+    <div style="font-size:13px;color:var(--color-text-secondary);margin-bottom:.75rem">Click a token to see its one-hot vector:</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:.75rem" id="enc_token_btns"></div>
+    <div class="icard" style="margin-bottom:.6rem">
+      <div style="font-size:13px;color:var(--color-text-secondary);margin-bottom:.5rem" id="enc_label">Select a token above</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:flex-end" id="enc_vec"></div>
+    </div>
+    <div style="font-size:13px;color:var(--color-text-secondary)" id="enc_explain"></div>
+  </div>
+  <p>A <strong>one-hot vector</strong> is a list of zeros with exactly one "1" — at the position matching the word's index. The vocabulary has thousands of words, so the vector is very long, with one "1" and the rest "0".</p>
+  <p class="m">We only show the first 8 positions here to keep it simple. In real life the vector might have 50,000 positions!</p>
+  <button class="sb" style="margin-top:.25rem" onclick="sendPrompt('What is the difference between one-hot encoding and word embeddings?')">What about embeddings? ↗</button>
+</div>
+
+</div>
+
+<div style="display:flex;justify-content:space-between;align-items:center;margin-top:1rem">
+  <button class="sb" id="btn_prev" onclick="prevStep()" disabled style="opacity:.35">← Prev</button>
+  <span style="font-size:13px;color:var(--color-text-secondary)" id="step_label">Step 1 of 5</span>
+  <button class="sb" id="btn_next" onclick="nextStep()">Next →</button>
+</div>
+
+</div>
+
+<script>
+var cur=0, nSteps=5;
+var vocab={'the':3,'a':5,'cat':26,'sat':65,'on':9,'mat':133,'dog':14,'big':77,'small':88,'ran':42,'jumped':19,'over':31,'under':55,'in':8,'at':12};
+var tokColors=['#EEEDFE','#E1F5EE','#FAEEDA','#FAECE7','#EAF3DE','#E6F1FB'];
+var tokTextColors=['#3C3489','#085041','#633806','#712B13','#27500A','#0C447C'];
+
+function getInput(){return document.getElementById('txt_input').value||'the cat sat on the mat';}
+function standardise(s){return s.toLowerCase().replace(/[^a-z0-9 ]/g,'').trim();}
+function tokenise(s){return s.split(/\s+/).filter(function(t){return t.length>0;});}
+function getIdx(tok){return vocab[tok]!==undefined?vocab[tok]:(tok.length*7+tok.charCodeAt(0))%200+10;}
+
+function runPipeline(){
+  var raw=getInput();
+  document.getElementById('raw_display').textContent=raw;
+  var std=standardise(raw);
+  document.getElementById('std_before').textContent=raw;
+  document.getElementById('std_after').textContent=std;
+  var changes=[];
+  if(raw!==raw.toLowerCase())changes.push('lowercased');
+  if(raw.match(/[^a-z0-9 ]/i))changes.push('removed punctuation');
+  document.getElementById('std_changes').textContent=changes.length?changes.join(' · '):'nothing needed changing';
+  var tokens=tokenise(std);
+  renderTokens(tokens);
+  renderIndex(tokens);
+  renderEncode(tokens);
+  goStep(cur);
+}
+
+function renderTokens(tokens){
+  var html='';
+  tokens.forEach(function(tok,i){
+    var ci=i%tokColors.length;
+    html+='<span class="tok" style="background:'+tokColors[ci]+';color:'+tokTextColors[ci]+'" onclick="highlightTok(this,'+i+')" data-i="'+i+'">"'+tok+'"</span>';
+  });
+  document.getElementById('tok_display').innerHTML=html;
+  document.getElementById('tok_count').textContent=tokens.length+' tokens total'+
+    (tokens.length!==new Set(tokens).size?' (some words repeat — that\'s normal!)':'');
+}
+function highlightTok(el,i){
+  document.querySelectorAll('.tok').forEach(function(t){t.style.opacity='0.35';});
+  el.style.opacity='1';
+  setTimeout(function(){document.querySelectorAll('.tok').forEach(function(t){t.style.opacity='1';});},1200);
+}
+
+function renderIndex(tokens){
+  var seen={};
+  var html='';
+  tokens.forEach(function(tok,i){
+    var idx=getIdx(tok);
+    var note=seen[tok]?'same word as row '+(seen[tok]):'';
+    seen[tok]=seen[tok]||i+1;
+    html+='<tr style="border-bottom:0.5px solid var(--color-border-tertiary)">'
+      +'<td style="padding:7px 10px;font-weight:500;color:'+tokTextColors[i%tokColors.length]+';background:'+tokColors[i%tokColors.length]+';border-radius:4px;margin:2px">'+tok+'</td>'
+      +'<td style="padding:7px 10px;font-family:monospace;font-size:15px;color:var(--color-text-primary)">'+idx+'</td>'
+      +'<td style="padding:7px 10px;font-size:13px;color:var(--color-text-secondary)">'+note+'</td>'
+      +'</tr>';
+  });
+  document.getElementById('idx_table').innerHTML=html;
+}
+
+function renderEncode(tokens){
+  var html='';
+  tokens.forEach(function(tok,i){
+    var ci=i%tokColors.length;
+    html+='<button class="sb" onclick="showEncode(\''+tok+'\','+i+')" style="background:'+tokColors[ci]+';color:'+tokTextColors[ci]+';border-color:'+tokTextColors[ci]+'40">'+tok+'</button>';
+  });
+  document.getElementById('enc_token_btns').innerHTML=html;
+}
+function showEncode(tok,ti){
+  var idx=getIdx(tok);
+  var SHOW=8;
+  var ci=ti%tokColors.length;
+  document.getElementById('enc_label').innerHTML='<span style="font-weight:500;color:'+tokTextColors[ci]+'">'+tok+'</span> → index <strong style="color:var(--color-text-primary)">'+idx+'</strong> → one-hot vector (first '+SHOW+' positions shown):';
+  var html='';
+  for(var j=0;j<SHOW;j++){
+    var isHot=j===(idx%SHOW);
+    html+='<div class="onehot-col"><div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:2px">pos '+j+'</div>'
+      +'<div class="onehot-cell'+(isHot?' hot':'')+'">'+(isHot?'1':'0')+'</div></div>';
+  }
+  html+='<div style="align-self:center;font-size:20px;color:var(--color-text-tertiary);margin:0 4px">…</div>';
+  document.getElementById('enc_vec').innerHTML=html;
+  document.getElementById('enc_explain').textContent='Position '+(idx%SHOW)+' is "hot" (set to 1) because that matches '+tok+'\'s index. Every other position is 0.';
+}
+
+function goStep(i){
+  for(var j=0;j<nSteps;j++) document.getElementById('s'+j).style.display=j===i?'':'none';
+  document.querySelectorAll('#step_nav .sb').forEach(function(b,j){b.classList.toggle('on',j===i);});
+  cur=i;
+  document.getElementById('step_label').textContent='Step '+(i+1)+' of '+nSteps;
+  document.getElementById('btn_prev').disabled=i===0;
+  document.getElementById('btn_prev').style.opacity=i===0?.35:1;
+  document.getElementById('btn_next').disabled=i===nSteps-1;
+  document.getElementById('btn_next').style.opacity=i===nSteps-1?.35:1;
+}
+function nextStep(){if(cur<nSteps-1)goStep(cur+1);}
+function prevStep(){if(cur>0)goStep(cur-1);}
+
+runPipeline();
+</script>

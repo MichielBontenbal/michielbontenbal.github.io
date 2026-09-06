@@ -1,0 +1,333 @@
+<style>
+:root{
+  --color-background-primary:#FFFFFF;
+  --color-background-secondary:#FFFFFF;
+  --color-background-tertiary:#EDE8DF;
+  --color-border-secondary:#C9C2B8;
+  --color-border-tertiary:#DDD8D0;
+  --color-text-primary:#002B5C;
+  --color-text-secondary:#3D5C82;
+}
+*{box-sizing:border-box}
+.t2e-root{font-family:Calibri,"Segoe UI",Candara,Optima,sans-serif;color:var(--color-text-primary)}
+p,div,span,button,input{font-family:inherit}
+.sb{background:var(--color-background-secondary);border:0.5px solid var(--color-border-secondary);border-radius:8px;padding:8px 18px;font-size:15px;color:var(--color-text-primary);cursor:pointer;transition:background .15s;font-family:inherit}
+.sb:hover{background:var(--color-background-tertiary)}
+.sb.on{background:#E6F1FB;border-color:#85B7EB;color:#0C447C}
+.card{background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:12px;padding:1rem 1.25rem;margin-bottom:.75rem}
+.icard{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:8px;padding:.65rem 1rem}
+p{margin:0 0 .6rem;color:var(--color-text-primary);font-size:15px;line-height:1.7}
+p.m{color:var(--color-text-secondary);font-size:14px}
+.badge{display:inline-block;font-size:12px;padding:2px 9px;border-radius:20px;font-weight:500;vertical-align:middle}
+.bp{background:#EEEDFE;color:#3C3489}
+.bt{background:#E1F5EE;color:#085041}
+.ba{background:#FAEEDA;color:#633806}
+.bg{background:#EAF3DE;color:#27500A}
+.bc{background:#FAECE7;color:#712B13}
+.tok{display:inline-block;padding:5px 12px;border-radius:6px;font-size:15px;font-weight:500;margin:3px;cursor:default;transition:opacity .2s}
+.arrow-down{width:0;height:0;border-left:10px solid transparent;border-right:10px solid transparent;border-top:12px solid var(--color-border-secondary);margin:6px auto}
+.step-row{display:flex;align-items:center;gap:10px;padding:.5rem 0}
+.step-num{width:28px;height:28px;border-radius:50%;background:#EEEDFE;color:#3C3489;font-size:13px;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.emb-bar-wrap{height:12px;background:var(--color-border-tertiary);border-radius:6px;overflow:hidden;flex:1}
+.emb-bar{height:100%;border-radius:6px;transition:width .5s}
+.word-dot{cursor:pointer;transition:all .2s}
+</style>
+
+<div class="t2e-root" style="padding:1.25rem;background:#F5F0E8;border-radius:12px">
+
+<div style="margin-bottom:1.25rem">
+  <div style="font-size:14px;color:var(--color-text-secondary);margin-bottom:.6rem">Type a sentence and watch it transform step by step into numbers the AI can understand:</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <input type="text" id="txt_in" value="The cat sat on the mat" style="flex:1;min-width:180px;font-size:15px;padding:8px 12px;border-radius:8px;border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);color:var(--color-text-primary)">
+    <button class="sb" onclick="runAll()">Go</button>
+  </div>
+</div>
+
+<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1.25rem" id="step_tabs">
+  <button class="sb on" onclick="goStep(0)">1 · Raw text</button>
+  <button class="sb" onclick="goStep(1)">2 · Clean up</button>
+  <button class="sb" onclick="goStep(2)">3 · Split into tokens</button>
+  <button class="sb" onclick="goStep(3)">4 · Look up embeddings</button>
+  <button class="sb" onclick="goStep(4)">5 · Word map</button>
+</div>
+
+<div id="panels">
+
+<div id="p0">
+  <div class="card">
+    <div style="font-size:13px;font-weight:500;color:var(--color-text-primary);margin-bottom:.5rem"><span class="badge bp">step 1</span> your raw text</div>
+    <div class="icard" style="font-size:20px;font-weight:500;color:var(--color-text-primary)" id="s0_raw">The cat sat on the mat</div>
+  </div>
+  <p>Computers only understand numbers. So before an AI can read your sentence, we need to convert every word into a list of numbers. This pipeline does exactly that — one step at a time.</p>
+  <p class="m">Press "Next" to start, or click any step tab above to jump straight to it.</p>
+</div>
+
+<div id="p1" style="display:none">
+  <div class="card">
+    <div style="font-size:13px;font-weight:500;color:var(--color-text-primary);margin-bottom:.75rem"><span class="badge bp">step 2</span> cleaning up the text</div>
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;margin-bottom:.75rem">
+      <div class="icard">
+        <div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:4px"><span class="badge bc">before</span></div>
+        <div style="font-size:16px;font-weight:500;color:var(--color-text-primary)" id="s1_before">The cat sat on the mat.</div>
+      </div>
+      <div class="icard">
+        <div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:4px"><span class="badge bt">after</span></div>
+        <div style="font-size:16px;font-weight:500;color:#085041" id="s1_after">the cat sat on the mat</div>
+      </div>
+    </div>
+    <div style="font-size:13px;color:var(--color-text-secondary)">Changes made: <span id="s1_changes" style="color:var(--color-text-primary)">lowercased · removed punctuation</span></div>
+  </div>
+  <p>First, we tidy things up. We make everything <strong>lowercase</strong> and remove full stops and commas. This is called <em>standardisation</em>.</p>
+  <p class="m">Why? Because "Cat" and "cat" mean the same thing. We don't want the computer to think they're two different words just because of a capital letter.</p>
+</div>
+
+<div id="p2" style="display:none">
+  <div class="card">
+    <div style="font-size:13px;font-weight:500;color:var(--color-text-primary);margin-bottom:.5rem"><span class="badge bp">step 3</span> splitting into tokens</div>
+    <div class="icard" style="margin-bottom:.6rem">
+      <div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:8px">Each word becomes its own <em>token</em>:</div>
+      <div id="s2_toks" style="line-height:2.4"></div>
+    </div>
+    <div style="font-size:13px;color:var(--color-text-secondary)" id="s2_note"></div>
+  </div>
+  <p>We chop the sentence into individual words. Each word is now a separate unit called a <strong>token</strong> — like cutting a sausage into slices.</p>
+  <p class="m">Notice: "the" appears twice, and that's fine! Each one is its own token and gets processed separately.</p>
+</div>
+
+<div id="p3" style="display:none">
+  <div class="card">
+    <div style="font-size:13px;font-weight:500;color:var(--color-text-primary);margin-bottom:.75rem"><span class="badge bp">step 4</span> looking up word embeddings</div>
+    <div style="font-size:13px;color:var(--color-text-secondary);margin-bottom:.75rem">Click a word to see its embedding — a short list of numbers that captures its <em>meaning</em>:</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:.75rem" id="s3_btns"></div>
+    <div id="s3_emb_panel" class="icard" style="display:none">
+      <div style="font-size:13px;font-weight:500;color:var(--color-text-primary);margin-bottom:.6rem" id="s3_word_lbl"></div>
+      <div id="s3_bars"></div>
+      <div style="font-size:12px;color:var(--color-text-secondary);margin-top:.5rem" id="s3_interp"></div>
+    </div>
+  </div>
+  <p>Instead of one-hot encoding (a huge list of mostly zeros), embeddings give each word a <strong>short, meaningful list of numbers</strong> — typically 100 to 300 values. These numbers were learned by the AI from reading millions of sentences.</p>
+  <p class="m">Similar words (like "cat" and "kitten") end up with similar numbers. The AI can use this similarity to understand language!</p>
+</div>
+
+<div id="p4" style="display:none">
+  <div class="card">
+    <div style="font-size:13px;font-weight:500;color:var(--color-text-primary);margin-bottom:.5rem"><span class="badge bp">step 5</span> the word map — similar words live near each other</div>
+    <div style="font-size:13px;color:var(--color-text-secondary);margin-bottom:.75rem">Click any word to find its closest neighbours:</div>
+    <canvas id="map_canvas" height="280" style="width:100%;display:block;cursor:pointer;background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:8px"></canvas>
+    <div class="icard" style="margin-top:.6rem;font-size:14px;color:var(--color-text-secondary)" id="map_info">Click a word on the map above.</div>
+  </div>
+  <p>Because embeddings capture meaning, similar words end up close together on the map. Animals cluster near each other. Verbs cluster together. This is why an AI that learns about "cats" also partly understands "kittens" — they live in the same neighbourhood!</p>
+  <button class="sb" style="margin-top:.25rem" onclick="sendPrompt('How does an AI actually learn word embeddings during training?')">How does AI learn embeddings? ↗</button>
+</div>
+
+</div>
+
+<div style="display:flex;justify-content:space-between;align-items:center;margin-top:1rem">
+  <button class="sb" id="btn_p" onclick="prevStep()" disabled style="opacity:.35">← Prev</button>
+  <span style="font-size:13px;color:var(--color-text-secondary)" id="step_lbl">Step 1 of 5</span>
+  <button class="sb" id="btn_n" onclick="nextStep()">Next →</button>
+</div>
+
+</div>
+
+<script>
+var cur=0, N=5;
+var TOK_COLORS=[
+  ['#EEEDFE','#3C3489'],['#E1F5EE','#085041'],['#FAEEDA','#633806'],
+  ['#FAECE7','#712B13'],['#EAF3DE','#27500A'],['#E6F1FB','#0C447C']
+];
+var EMB={
+  the:   {animal:0.05,living:0.02,action:0.08,size:0.50,common:0.98,dims:[0.05,0.02,0.08,0.50,0.98]},
+  cat:   {animal:0.95,living:0.92,action:0.10,size:0.35,common:0.80,dims:[0.95,0.92,0.10,0.35,0.80]},
+  sat:   {animal:0.10,living:0.12,action:0.92,size:0.30,common:0.70,dims:[0.10,0.12,0.92,0.30,0.70]},
+  on:    {animal:0.02,living:0.01,action:0.15,size:0.20,common:0.95,dims:[0.02,0.01,0.15,0.20,0.95]},
+  mat:   {animal:0.05,living:0.02,action:0.08,size:0.25,common:0.75,dims:[0.05,0.02,0.08,0.25,0.75]},
+  dog:   {animal:0.93,living:0.90,action:0.12,size:0.45,common:0.82,dims:[0.93,0.90,0.12,0.45,0.82]},
+  kitten:{animal:0.94,living:0.91,action:0.08,size:0.20,common:0.65,dims:[0.94,0.91,0.08,0.20,0.65]},
+  ran:   {animal:0.08,living:0.10,action:0.95,size:0.35,common:0.68,dims:[0.08,0.10,0.95,0.35,0.68]},
+  big:   {animal:0.05,living:0.05,action:0.10,size:0.90,common:0.85,dims:[0.05,0.05,0.10,0.90,0.85]},
+  small: {animal:0.05,living:0.05,action:0.10,size:0.05,common:0.83,dims:[0.05,0.05,0.10,0.05,0.83]}
+};
+var DIM_LABELS=['animal-ness','living thing','action word','size','how common'];
+var DIM_COLORS=['#534AB7','#0F6E56','#D85A30','#854F0B','#888780'];
+var MAP_WORDS=['cat','dog','kitten','sat','ran','the','on','mat','big','small'];
+var MAP_POS={
+  cat:[0.18,0.22],dog:[0.26,0.32],kitten:[0.12,0.38],
+  sat:[0.55,0.25],ran:[0.65,0.38],
+  the:[0.78,0.18],on:[0.85,0.32],
+  mat:[0.50,0.68],big:[0.35,0.72],small:[0.42,0.60]
+};
+var MAP_GROUPS={cat:'animal',dog:'animal',kitten:'animal',sat:'verb',ran:'verb',the:'function',on:'function',mat:'object',big:'size',small:'size'};
+var GROUP_COL={animal:'#534AB7',verb:'#D85A30',function:'#888780',object:'#0F6E56',size:'#854F0B'};
+
+function standardise(s){return s.toLowerCase().replace(/[^a-z0-9 ]/g,'').trim();}
+function tokenise(s){return s.split(/\s+/).filter(function(t){return t.length>0;});}
+function getInput(){return document.getElementById('txt_in').value.trim()||'the cat sat on the mat';}
+
+function runAll(){
+  var raw=getInput();
+  var std=standardise(raw);
+  var toks=tokenise(std);
+  document.getElementById('s0_raw').textContent=raw;
+  document.getElementById('s1_before').textContent=raw;
+  document.getElementById('s1_after').textContent=std;
+  var ch=[];
+  if(raw!==raw.toLowerCase()) ch.push('lowercased');
+  if(/[^a-z0-9 ]/i.test(raw)) ch.push('removed punctuation');
+  document.getElementById('s1_changes').textContent=ch.length?ch.join(' · '):'nothing needed changing';
+  var th='';
+  toks.forEach(function(t,i){
+    var c=TOK_COLORS[i%TOK_COLORS.length];
+    th+='<span class="tok" style="background:'+c[0]+';color:'+c[1]+'">"'+t+'"</span> ';
+  });
+  document.getElementById('s2_toks').innerHTML=th;
+  var uniq=new Set(toks);
+  document.getElementById('s2_note').textContent=toks.length+' tokens total'+(toks.length>uniq.size?' (some words repeat — that\'s fine!)':'');
+  buildEmbBtns(toks);
+  goStep(cur);
+}
+
+function buildEmbBtns(toks){
+  var seen=new Set();
+  var html='';
+  toks.forEach(function(t,i){
+    if(seen.has(t)) return;
+    seen.add(t);
+    var c=TOK_COLORS[i%TOK_COLORS.length];
+    html+='<button onclick="showEmb(\''+t+'\','+i+')" style="padding:6px 14px;border-radius:8px;border:0.5px solid '+c[1]+'40;background:'+c[0]+';color:'+c[1]+';font-size:14px;cursor:pointer;font-family:inherit;font-weight:500">'+t+'</button>';
+  });
+  document.getElementById('s3_btns').innerHTML=html;
+}
+
+function getEmb(w){
+  if(EMB[w]) return EMB[w].dims;
+  var h=0;
+  for(var i=0;i<w.length;i++) h=(h*31+w.charCodeAt(i))%100;
+  return [
+    ((h*17)%100)/100,
+    ((h*31+13)%100)/100,
+    ((h*7+37)%100)/100,
+    ((h*53+7)%100)/100,
+    ((h*11+61)%100)/100
+  ];
+}
+function getInterpretation(w){
+  var e=EMB[w];
+  if(!e) return 'This word\'s embedding is a unique pattern of numbers the AI learned from reading text.';
+  var top='';
+  if(e.animal>0.7) top='The high "animal-ness" score shows the AI knows this is a living creature. ';
+  if(e.action>0.7) top='The high "action" score shows the AI recognises this as something you do. ';
+  if(e.common>0.9) top='This is a very common word — used in almost every sentence. ';
+  if(e.size>0.7) top='This word strongly relates to size or scale. ';
+  return top+'Similar words (like '+(e.animal>0.7?'"dog", "kitten"':e.action>0.7?'"ran", "jumped"':'"a", "an"')+') would have very similar numbers here.';
+}
+
+function showEmb(w,ti){
+  var dims=getEmb(w);
+  var panel=document.getElementById('s3_emb_panel');
+  panel.style.display='block';
+  document.getElementById('s3_word_lbl').textContent='"'+w+'" → embedding vector (5 dimensions shown out of ~300 in real models)';
+  var html='';
+  dims.forEach(function(v,i){
+    var pct=Math.round(v*100);
+    html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'
+      +'<span style="font-size:12px;min-width:90px;color:var(--color-text-secondary)">'+DIM_LABELS[i]+'</span>'
+      +'<div class="emb-bar-wrap"><div class="emb-bar" style="width:'+pct+'%;background:'+DIM_COLORS[i]+'"></div></div>'
+      +'<span style="font-size:13px;font-weight:500;min-width:36px;text-align:right;color:var(--color-text-primary)">'+v.toFixed(2)+'</span>'
+      +'</div>';
+  });
+  document.getElementById('s3_bars').innerHTML=html;
+  document.getElementById('s3_interp').textContent=getInterpretation(w);
+}
+
+var selMapWord=null;
+function drawMap(sel){
+  selMapWord=sel;
+  var c=document.getElementById('map_canvas');
+  var W=c.offsetWidth||400, H=280;
+  c.width=W; c.height=H;
+  var ctx=c.getContext('2d');
+  ctx.clearRect(0,0,W,H);
+
+  var groupCenters={animal:{x:.19,y:.30},verb:{x:.60,y:.31},function:{x:.81,y:.25},object:{x:.50,y:.68},size:{x:.39,y:.66}};
+  Object.entries(groupCenters).forEach(function(e){
+    ctx.beginPath();
+    ctx.arc(e[1].x*W,e[1].y*H,W*.1,0,Math.PI*2);
+    ctx.fillStyle='rgba(0,0,0,.04)';
+    ctx.fill();
+    ctx.font='11px Calibri,"Segoe UI",sans-serif';
+    ctx.fillStyle='rgba(0,43,92,.45)';
+    ctx.textAlign='center';
+    ctx.fillText(e[0]+'s',e[1].x*W,(e[1].y-.11)*H);
+  });
+
+  if(sel){
+    MAP_WORDS.forEach(function(w){
+      if(w!==sel&&MAP_GROUPS[w]===MAP_GROUPS[sel]){
+        var sp=MAP_POS[sel], tp=MAP_POS[w];
+        ctx.beginPath();
+        ctx.strokeStyle=GROUP_COL[MAP_GROUPS[sel]]+'44';
+        ctx.lineWidth=1.5;
+        ctx.setLineDash([3,3]);
+        ctx.moveTo(sp[0]*W,sp[1]*H);
+        ctx.lineTo(tp[0]*W,tp[1]*H);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    });
+  }
+
+  MAP_WORDS.forEach(function(w){
+    var pos=MAP_POS[w], px=pos[0]*W, py=pos[1]*H;
+    var col=GROUP_COL[MAP_GROUPS[w]];
+    var isSel=w===sel;
+    var isNear=sel&&MAP_GROUPS[w]===MAP_GROUPS[sel]&&w!==sel;
+    ctx.beginPath();
+    ctx.arc(px,py,isSel?10:isNear?8:7,0,Math.PI*2);
+    ctx.fillStyle=isSel?col:(isNear?col+'cc':col+'88');
+    ctx.fill();
+    if(isSel){ctx.strokeStyle=col;ctx.lineWidth=2.5;ctx.stroke();}
+    ctx.font=(isSel?'500 ':'')+'13px Calibri,"Segoe UI",sans-serif';
+    ctx.fillStyle=window.matchMedia('(prefers-color-scheme:dark)').matches?'rgba(255,255,255,.9)':'rgba(0,43,92,.9)';
+    ctx.textAlign='left';
+    ctx.fillText(w,px+12,py+5);
+  });
+}
+
+document.getElementById('map_canvas').addEventListener('click',function(e){
+  var c=this, r=c.getBoundingClientRect();
+  var mx=(e.clientX-r.left)*(c.width/r.width);
+  var my=(e.clientY-r.top)*(c.height/r.height);
+  var best=null, bestD=9999;
+  MAP_WORDS.forEach(function(w){
+    var p=MAP_POS[w];
+    var dx=p[0]*c.width-mx, dy=p[1]*c.height-my;
+    var d=Math.sqrt(dx*dx+dy*dy);
+    if(d<bestD){bestD=d;best=w;}
+  });
+  if(bestD<50){
+    drawMap(best);
+    var near=MAP_WORDS.filter(function(w){return w!==best&&MAP_GROUPS[w]===MAP_GROUPS[best];});
+    document.getElementById('map_info').innerHTML='<strong style="color:var(--color-text-primary)">'+best+'</strong> is closest to: <strong style="color:var(--color-text-primary)">'+near.join(', ')+'</strong> — they have similar embeddings because they share similar meaning.';
+  }
+});
+
+function goStep(i){
+  for(var j=0;j<N;j++) document.getElementById('p'+j).style.display=j===i?'':'none';
+  document.querySelectorAll('#step_tabs .sb').forEach(function(b,j){b.classList.toggle('on',j===i);});
+  cur=i;
+  document.getElementById('step_lbl').textContent='Step '+(i+1)+' of '+N;
+  document.getElementById('btn_p').disabled=i===0;
+  document.getElementById('btn_p').style.opacity=i===0?.35:1;
+  document.getElementById('btn_n').disabled=i===N-1;
+  document.getElementById('btn_n').style.opacity=i===N-1?.35:1;
+  if(i===4) setTimeout(function(){drawMap(selMapWord);},50);
+}
+function nextStep(){if(cur<N-1)goStep(cur+1);}
+function prevStep(){if(cur>0)goStep(cur-1);}
+
+runAll();
+window.addEventListener('resize',function(){
+  if(cur===4) drawMap(selMapWord);
+});
+</script>

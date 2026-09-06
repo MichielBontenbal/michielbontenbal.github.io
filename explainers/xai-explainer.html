@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Explainable AI — A Primer for Master's Students</title>
+
+<!-- Math typesetting -->
+<script>
+  window.MathJax = {
+    tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
+    svg: { fontCache: 'global' }
+  };
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg.js"></script>
+
+<!-- Syntax highlighting -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/styles/github.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/highlight.min.js"></script>
+
+<style>
+  :root {
+    --navy:        #1E2761;
+    --navy-deep:   #0F1B47;
+    --navy-muted:  #5A6A95;
+    --navy-light:  #8993B7;
+    --divider:     #D4D9E8;
+    --code-bg:     #F5F6FB;
+    --accent-bg:   rgba(30, 39, 97, 0.04);
+    --white:       #FFFFFF;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--white);
+    color: var(--navy);
+    font-family: Aptos, 'Aptos Display', 'Segoe UI', Calibri, sans-serif;
+    font-size: 16px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 64px 48px 96px;
+  }
+
+  /* Header */
+  header {
+    border-bottom: 1px solid var(--divider);
+    padding-bottom: 40px;
+    margin-bottom: 0;
+  }
+  .eyebrow {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--navy-muted);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  h1.title {
+    font-size: 52px;
+    font-weight: 700;
+    color: var(--navy-deep);
+    letter-spacing: -1px;
+    line-height: 1.05;
+    margin-bottom: 14px;
+  }
+  .lead {
+    font-size: 19px;
+    color: var(--navy-muted);
+    font-style: italic;
+    max-width: 620px;
+  }
+
+  /* Tabs */
+  nav.tabs {
+    display: flex;
+    gap: 4px;
+    border-bottom: 1px solid var(--divider);
+    margin: 36px 0 48px;
+    flex-wrap: wrap;
+    position: sticky;
+    top: 0;
+    background: var(--white);
+    z-index: 10;
+    padding-top: 8px;
+  }
+  nav.tabs button {
+    background: none;
+    border: none;
+    color: var(--navy-muted);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    padding: 14px 18px;
+    cursor: pointer;
+    position: relative;
+    transition: color 0.15s ease;
+  }
+  nav.tabs button:hover { color: var(--navy); }
+  nav.tabs button.active { color: var(--navy-deep); }
+  nav.tabs button.active::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 18px;
+    right: 18px;
+    height: 2px;
+    background: var(--navy-deep);
+  }
+  nav.tabs .num {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--navy);
+    color: white;
+    font-size: 11px;
+    line-height: 20px;
+    text-align: center;
+    margin-right: 8px;
+    vertical-align: 1px;
+  }
+
+  /* Sections */
+  section.tab-content { display: none; }
+  section.tab-content.active { display: block; animation: fadeIn 0.25s ease; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Typography */
+  h2 {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--navy-deep);
+    letter-spacing: -0.4px;
+    line-height: 1.15;
+    margin-bottom: 8px;
+  }
+  h2 + .section-sub {
+    font-size: 15px;
+    color: var(--navy-muted);
+    font-style: italic;
+    margin-bottom: 36px;
+  }
+  h3 {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--navy-deep);
+    margin-top: 40px;
+    margin-bottom: 12px;
+  }
+  h4 {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--navy);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-top: 28px;
+    margin-bottom: 8px;
+  }
+  p { margin-bottom: 16px; }
+  p + p { margin-top: 0; }
+
+  strong { color: var(--navy-deep); font-weight: 700; }
+  em { color: var(--navy); font-style: italic; }
+
+  /* Inline code */
+  code {
+    font-family: 'JetBrains Mono', 'SF Mono', 'Cascadia Code', Consolas, monospace;
+    font-size: 0.88em;
+    background: var(--accent-bg);
+    padding: 1px 6px;
+    border-radius: 3px;
+    color: var(--navy-deep);
+  }
+
+  /* Code blocks */
+  pre {
+    background: var(--code-bg) !important;
+    border: 1px solid var(--divider);
+    border-radius: 6px;
+    padding: 20px 24px !important;
+    margin: 20px 0;
+    overflow-x: auto;
+    font-size: 13.5px;
+    line-height: 1.55;
+  }
+  pre code {
+    background: transparent !important;
+    padding: 0 !important;
+    font-size: inherit;
+    color: var(--navy) !important;
+  }
+  /* override github theme to lean navy */
+  .hljs { background: var(--code-bg) !important; color: var(--navy) !important; }
+  .hljs-keyword, .hljs-built_in { color: var(--navy-deep); font-weight: 600; }
+  .hljs-string { color: #6B5B95; }
+  .hljs-comment { color: var(--navy-light); font-style: italic; }
+  .hljs-number { color: #8B4513; }
+  .hljs-title, .hljs-class, .hljs-function { color: var(--navy-deep); font-weight: 600; }
+
+  /* Math display */
+  mjx-container[display="true"] {
+    margin: 24px 0 !important;
+  }
+
+  /* Lists */
+  ul, ol { padding-left: 28px; margin-bottom: 16px; }
+  li { margin-bottom: 6px; }
+
+  /* Callouts */
+  .callout {
+    border-left: 3px solid var(--navy);
+    background: var(--accent-bg);
+    padding: 14px 18px 14px 22px;
+    margin: 24px 0;
+    border-radius: 0 4px 4px 0;
+  }
+  .callout .label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--navy-deep);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 4px;
+  }
+  .callout p { margin: 0; font-size: 14.5px; }
+  .callout.warn { border-left-color: #B8860B; }
+  .callout.warn .label { color: #8B6914; }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 24px 0;
+    font-size: 14px;
+  }
+  th, td {
+    text-align: left;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--divider);
+  }
+  th {
+    font-weight: 700;
+    color: var(--navy-deep);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  td { color: var(--navy); vertical-align: top; }
+
+  /* Reference list */
+  .refs {
+    margin-top: 48px;
+    padding-top: 24px;
+    border-top: 1px solid var(--divider);
+    font-size: 13px;
+    color: var(--navy-muted);
+  }
+  .refs h4 {
+    color: var(--navy-muted);
+    margin-top: 0;
+    margin-bottom: 10px;
+  }
+  .refs ol { padding-left: 22px; }
+  .refs li { margin-bottom: 4px; }
+
+  /* Diagram */
+  .diagram {
+    background: var(--accent-bg);
+    border: 1px solid var(--divider);
+    border-radius: 6px;
+    padding: 20px;
+    margin: 24px 0;
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--navy);
+    white-space: pre;
+    overflow-x: auto;
+  }
+
+  /* Footer */
+  footer {
+    margin-top: 72px;
+    padding-top: 24px;
+    border-top: 1px solid var(--divider);
+    font-size: 12px;
+    color: var(--navy-muted);
+    font-style: italic;
+  }
+
+  @media (max-width: 700px) {
+    .container { padding: 32px 20px 64px; }
+    h1.title { font-size: 36px; }
+    h2 { font-size: 26px; }
+    nav.tabs { gap: 0; }
+    nav.tabs button { padding: 12px 10px; font-size: 13px; }
+    nav.tabs .num { display: none; }
+  }
+</style>
+</head>
+
+<body>
+<div class="container">
+
+  <header>
+    <div class="eyebrow">Lecture Notes · AI Master's</div>
+    <h1 class="title">Explainable AI</h1>
+    <p class="lead">From Shapley values to saliency maps to mechanistic interpretability — a working primer focused on deep learning, computer vision, and LLMs.</p>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button class="active" data-tab="1"><span class="num">1</span>Foundations</button>
+    <button data-tab="2"><span class="num">2</span>Shapley &amp; SHAP</button>
+    <button data-tab="3"><span class="num">3</span>Vision XAI</button>
+    <button data-tab="4"><span class="num">4</span>Code: Grad-CAM</button>
+    <button data-tab="5"><span class="num">5</span>XAI for LLMs</button>
+  </nav>
+
+  <!-- ============================================================ -->
+  <!-- TAB 1 — Foundations -->
+  <!-- ============================================================ -->
+  <section class="tab-content active" id="tab-1">
+
+    <h2>Why XAI, and what counts as an explanation</h2>
+    <p class="section-sub">Motivation, taxonomy, and the central tension.</p>
+
+    <p>A modern deep neural network can have tens of billions of parameters and produce outputs that humans accept, reject, or deploy in safety-critical settings — medical triage, credit scoring, autonomous driving, content moderation. <strong>Explainable AI (XAI)</strong> is the body of techniques that produces auxiliary information allowing a human to reason about <em>why</em> a model produced a given output, or <em>how</em> it behaves overall.</p>
+
+    <p>The motivation is not only philosophical. Concrete drivers include:</p>
+    <ul>
+      <li><strong>Debugging.</strong> A model may achieve 94% accuracy by exploiting a spurious correlation. Explanations surface this before deployment.</li>
+      <li><strong>Trust and adoption.</strong> Clinicians, judges, and engineers will not act on a recommendation they cannot inspect.</li>
+      <li><strong>Regulation.</strong> The GDPR's "right to explanation" (Art. 22) and the EU AI Act (2024) impose interpretability obligations on high-risk systems.</li>
+      <li><strong>Scientific understanding.</strong> Beyond utility: why does this representation generalize? What features does the model encode?</li>
+      <li><strong>Bias auditing.</strong> Detecting protected-attribute leakage requires probing the model's actual decision logic.</li>
+    </ul>
+
+    <h3>The interpretability — accuracy tradeoff (and why it's overstated)</h3>
+    <p>Classical wisdom: simpler models (linear regression, shallow decision trees) are interpretable but inaccurate; deep models are accurate but opaque. Recent work, especially Cynthia Rudin's <em>"Stop Explaining Black Box Models"</em> (2019), argues this tradeoff is exaggerated in many tabular domains — interpretable models can often match black-box accuracy when designed carefully. The tradeoff is real for high-dimensional perceptual tasks (vision, language), which is why XAI for deep models is an active field rather than a closed one.</p>
+
+    <h3>A taxonomy of explanation methods</h3>
+    <p>Four orthogonal distinctions structure almost every paper in the field:</p>
+
+    <table>
+      <tr><th>Axis</th><th>Options</th><th>Example</th></tr>
+      <tr>
+        <td>Stage</td>
+        <td>Intrinsic / Post-hoc</td>
+        <td>A logistic regression is intrinsically interpretable; SHAP on a ResNet is post-hoc.</td>
+      </tr>
+      <tr>
+        <td>Specificity</td>
+        <td>Model-specific / Model-agnostic</td>
+        <td>TreeSHAP only works on trees. LIME works on any classifier.</td>
+      </tr>
+      <tr>
+        <td>Scope</td>
+        <td>Local / Global</td>
+        <td>"Why this prediction?" (local) vs. "How does the model behave overall?" (global).</td>
+      </tr>
+      <tr>
+        <td>Output type</td>
+        <td>Feature attribution / Counterfactual / Example-based / Rule extraction</td>
+        <td>SHAP gives attributions; "if income had been €5k higher, the loan would have been approved" is a counterfactual.</td>
+      </tr>
+    </table>
+
+    <h3>What does it mean for an explanation to be good?</h3>
+    <p>Two desiderata that often conflict:</p>
+    <ul>
+      <li><strong>Faithfulness</strong> — the explanation accurately reflects the model's actual computation. An explanation is unfaithful if it tells a plausible story that does not match the model's true reasoning.</li>
+      <li><strong>Plausibility / interpretability</strong> — the explanation is understandable to a human and aligns with prior intuitions about the task.</li>
+    </ul>
+    <p>A faithful explanation may be unintelligible (e.g., a 4096-dimensional gradient vector). A plausible explanation may be a confabulation. The honest framing of any XAI method is: <em>which of these two properties does it actually deliver, and how do we evaluate that?</em></p>
+
+    <div class="callout">
+      <div class="label">Sanity check</div>
+      <p>Adebayo et al. (2018) showed that several popular saliency methods produce essentially the same heatmap even when the model's weights are randomized. Methods that pass this "model parameter randomization test" are faithful; those that don't are visualizing the input, not the model.</p>
+    </div>
+
+    <div class="refs">
+      <h4>Pointers</h4>
+      <ol>
+        <li>Rudin, C. (2019). <em>Stop explaining black box machine learning models for high stakes decisions.</em> Nature Machine Intelligence.</li>
+        <li>Doshi-Velez &amp; Kim (2017). <em>Towards a rigorous science of interpretable machine learning.</em></li>
+        <li>Adebayo et al. (2018). <em>Sanity checks for saliency maps.</em> NeurIPS.</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- TAB 2 — Shapley & SHAP -->
+  <!-- ============================================================ -->
+  <section class="tab-content" id="tab-2">
+
+    <h2>Shapley Values &amp; SHAP</h2>
+    <p class="section-sub">Cooperative game theory as a unified framework for feature attribution.</p>
+
+    <h3>The origin: a fair division problem</h3>
+    <p>Lloyd Shapley (1953) asked: given a coalition of players that together earn some payout, how should the payout be split <em>fairly</em>? He defined four axioms (efficiency, symmetry, dummy, linearity) and proved there exists a <strong>unique</strong> attribution rule satisfying all four. That rule is the Shapley value.</p>
+
+    <p>The translation to machine learning, due to Štrumbelj &amp; Kononenko (2014) and made canonical by Lundberg &amp; Lee's SHAP (NeurIPS 2017), is:</p>
+
+    <table>
+      <tr><th>Cooperative game</th><th>ML interpretation</th></tr>
+      <tr><td>Set of players $N$</td><td>Set of features</td></tr>
+      <tr><td>Coalition $S \subseteq N$</td><td>Subset of features present</td></tr>
+      <tr><td>Value function $v(S)$</td><td>Model prediction given only features in $S$</td></tr>
+      <tr><td>Shapley value $\phi_i$</td><td>Attribution of feature $i$ to the prediction</td></tr>
+    </table>
+
+    <h3>The formula</h3>
+    <p>The Shapley value of feature $i$ is the weighted average of its marginal contributions across all possible coalitions:</p>
+
+    $$\phi_i(v) = \sum_{S \subseteq N \setminus \{i\}} \frac{|S|!\,(n - |S| - 1)!}{n!} \bigl[\, v(S \cup \{i\}) - v(S) \,\bigr]$$
+
+    <p>Read this as: for every subset $S$ that does not contain feature $i$, measure how much adding $i$ changes the value ($v(S \cup \{i\}) - v(S)$), and average these marginal contributions, weighted so each "coalition size" contributes equally.</p>
+
+    <h3>The four axioms (and why uniqueness matters)</h3>
+    <ol>
+      <li><strong>Efficiency.</strong> $\sum_i \phi_i = v(N) - v(\emptyset)$. The attributions exactly account for the prediction relative to the empty baseline.</li>
+      <li><strong>Symmetry.</strong> If two features always contribute equally ($v(S \cup \{i\}) = v(S \cup \{j\})$ for all $S$), then $\phi_i = \phi_j$.</li>
+      <li><strong>Dummy.</strong> A feature that never changes the prediction gets attribution zero.</li>
+      <li><strong>Linearity.</strong> Attributions are additive across composable games: $\phi_i(v_1 + v_2) = \phi_i(v_1) + \phi_i(v_2)$.</li>
+    </ol>
+    <p>These axioms uniquely determine the formula above. Any feature-attribution method satisfying all four <em>must</em> compute Shapley values. This is the central appeal of SHAP: it isn't one of many possible attribution methods; among methods with these properties, it is the only one.</p>
+
+    <h3>Why we can't just compute it</h3>
+    <p>The sum has $2^{n-1}$ coalitions. For a model with 50 features that is $\approx 5.6 \times 10^{14}$ evaluations per prediction. Worse, evaluating $v(S)$ requires marginalizing out the missing features, which typically means averaging the model's prediction over a sample of values for the absent features — adding another factor.</p>
+
+    <p>All practical SHAP variants are approximations or model-specific exact algorithms:</p>
+
+    <table>
+      <tr><th>Variant</th><th>Applies to</th><th>How</th></tr>
+      <tr><td><strong>KernelSHAP</strong></td><td>Any model</td><td>Weighted local linear regression on sampled coalitions; recovers Shapley values in the limit.</td></tr>
+      <tr><td><strong>TreeSHAP</strong></td><td>Tree ensembles (XGBoost, LightGBM, sklearn)</td><td>Exact, in polynomial time. Lundberg et al. (2020).</td></tr>
+      <tr><td><strong>DeepSHAP</strong></td><td>Deep neural networks</td><td>Combines DeepLIFT propagation rules with Shapley reference values.</td></tr>
+      <tr><td><strong>GradientSHAP</strong></td><td>Differentiable models</td><td>Stochastic estimator combining Integrated Gradients with Shapley sampling.</td></tr>
+      <tr><td><strong>PartitionSHAP</strong></td><td>High-dim structured inputs (text, images)</td><td>Hierarchical Shapley: cluster features, attribute clusters, recurse.</td></tr>
+    </table>
+
+    <h3>The baseline problem</h3>
+    <p>"Marginalize out missing features" is harder than it sounds. SHAP needs a notion of $v(S)$ when only the features in $S$ are present — but neural networks don't accept partial inputs. Two common choices:</p>
+    <ul>
+      <li><strong>Marginal expectation:</strong> $v(S) = \mathbb{E}_{X_{\bar S}}[f(X_S, X_{\bar S})]$ over a background distribution. Honest but requires a representative dataset.</li>
+      <li><strong>Conditional expectation:</strong> $v(S) = \mathbb{E}_{X_{\bar S} \mid X_S}[f(X_S, X_{\bar S})]$. More accurate but requires modeling the conditional, which is itself hard.</li>
+    </ul>
+    <p>Janzing et al. (2020) argue that the choice of baseline encodes implicit causal assumptions, and different baselines yield meaningfully different attributions. This is not a solved problem.</p>
+
+    <div class="callout warn">
+      <div class="label">Conceptual warning</div>
+      <p>SHAP values are <em>attributions to the model's output</em>, not causal effects on the underlying phenomenon. If the model is wrong, SHAP will faithfully explain its wrongness. SHAP cannot tell you what the true causal drivers are — only what the model is using.</p>
+    </div>
+
+    <div class="refs">
+      <h4>Pointers</h4>
+      <ol>
+        <li>Lundberg &amp; Lee (2017). <em>A unified approach to interpreting model predictions.</em> NeurIPS.</li>
+        <li>Lundberg et al. (2020). <em>From local explanations to global understanding with explainable AI for trees.</em> Nature Machine Intelligence.</li>
+        <li>Janzing, Minorics, Blöbaum (2020). <em>Feature relevance quantification in explainable AI.</em> AISTATS.</li>
+        <li>Štrumbelj &amp; Kononenko (2014). <em>Explaining prediction models with feature contributions.</em> KAIS.</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- TAB 3 — Vision XAI -->
+  <!-- ============================================================ -->
+  <section class="tab-content" id="tab-3">
+
+    <h2>XAI for Computer Vision</h2>
+    <p class="section-sub">Saliency maps, class activation, integrated gradients, occlusion.</p>
+
+    <p>For a vision model, the natural form of a local explanation is a heatmap over the input image highlighting which pixels (or regions) drove the prediction. The methods below differ in <em>how</em> they compute that heatmap, and crucially, in whether the heatmap actually reflects the model's reasoning.</p>
+
+    <h3>Vanilla saliency (Simonyan et al., 2013)</h3>
+    <p>The simplest idea: compute the gradient of the predicted class score with respect to the input pixels. Pixels whose small perturbations most change the output are the "salient" ones.</p>
+    $$M_{ij} = \left| \frac{\partial y_c}{\partial x_{ij}} \right|$$
+    <p>Cheap (one backward pass). Often noisy. Tends to highlight edges in the image rather than semantically meaningful regions.</p>
+
+    <h3>Grad-CAM (Selvaraju et al., 2017)</h3>
+    <p>Currently the standard baseline for CNN interpretability. The insight: instead of using gradients with respect to <em>pixels</em>, use gradients with respect to the <em>last convolutional layer's feature maps</em>. Those maps still carry spatial structure (a 14×14 grid for ResNet-50 with 224×224 input) and are semantically richer than raw pixels.</p>
+
+    <p>Let $A^k \in \mathbb{R}^{H \times W}$ be the $k$-th feature map of the target conv layer, and $y^c$ be the score for class $c$. Compute channel weights by global-average-pooling the gradients:</p>
+
+    $$\alpha_k^c = \frac{1}{Z} \sum_{i,j} \frac{\partial y^c}{\partial A^k_{ij}}$$
+
+    <p>Then form a weighted sum of feature maps, gated by ReLU to keep only positively-contributing regions:</p>
+
+    $$L^c_{\text{Grad-CAM}} = \text{ReLU}\!\left( \sum_k \alpha_k^c \, A^k \right)$$
+
+    <p>The result is a low-resolution heatmap that you upsample to image size. <strong>Class-discriminative</strong>: different classes produce different maps. Survives the sanity check in Adebayo et al. (2018).</p>
+
+    <h3>Integrated Gradients (Sundararajan et al., 2017)</h3>
+    <p>A theoretically principled feature-attribution method for any differentiable model. Given an input $x$ and a baseline $x'$ (typically a black image), integrate the gradient along the straight-line path from $x'$ to $x$:</p>
+
+    $$\text{IG}_i(x) = (x_i - x'_i) \cdot \int_{\alpha = 0}^{1} \frac{\partial F(x' + \alpha(x - x'))}{\partial x_i} \, d\alpha$$
+
+    <p>In practice the integral is approximated by a Riemann sum over 20–50 steps. IG satisfies <em>completeness</em> ($\sum_i \text{IG}_i = F(x) - F(x')$, the same property as Shapley efficiency) and <em>implementation invariance</em> (functionally equivalent models give the same attributions). The choice of baseline matters: zero image, blur, or random noise yield different attributions.</p>
+
+    <h3>LIME for images (Ribeiro et al., 2016)</h3>
+    <p>Partition the image into ~50 <strong>superpixels</strong> (e.g., via SLIC). Generate ~1000 perturbed versions by randomly masking subsets of superpixels with a neutral color. Get the model's predictions on all perturbations, then fit a sparse linear model that predicts these outputs from the binary mask. The coefficients of the linear model are the superpixel attributions.</p>
+    <p>LIME is model-agnostic and gives intuitive region-level explanations. It's also slow (1000 forward passes per explanation) and unstable: re-running LIME on the same image with a different perturbation seed can produce visibly different heatmaps.</p>
+
+    <h3>Occlusion sensitivity (Zeiler &amp; Fergus, 2014)</h3>
+    <p>Slide an opaque gray patch over the image; for each position, record how much the predicted class probability drops. Drops in probability map directly to importance. Intuitive, no gradients needed, very slow (one forward pass per patch position), and conflates the model's reliance on a region with the OOD-ness of the occluded image.</p>
+
+    <h3>The honest comparison</h3>
+    <table>
+      <tr><th>Method</th><th>Faithful?</th><th>Resolution</th><th>Cost</th></tr>
+      <tr><td>Vanilla saliency</td><td>Mixed — fails some sanity checks</td><td>Pixel</td><td>1 backward pass</td></tr>
+      <tr><td>Grad-CAM</td><td>Passes sanity checks</td><td>Coarse (feature-map grid)</td><td>1 fwd + 1 bwd</td></tr>
+      <tr><td>Integrated Gradients</td><td>Theoretically principled</td><td>Pixel</td><td>20–50 fwd + bwd</td></tr>
+      <tr><td>LIME</td><td>Local approximation, unstable</td><td>Superpixel</td><td>~1000 fwd</td></tr>
+      <tr><td>Occlusion</td><td>OOD-confounded</td><td>Patch grid</td><td>~hundreds fwd</td></tr>
+    </table>
+
+    <p>For most CNN interpretability work today, the default is <strong>Grad-CAM for quick visual checks</strong> and <strong>Integrated Gradients when you need theoretical guarantees</strong>. SHAP (via the <code>DeepExplainer</code> or <code>GradientExplainer</code>) is also viable and ties the analysis to the Shapley framework introduced in Tab 2.</p>
+
+    <div class="refs">
+      <h4>Pointers</h4>
+      <ol>
+        <li>Selvaraju et al. (2017). <em>Grad-CAM: Visual Explanations from Deep Networks via Gradient-based Localization.</em> ICCV.</li>
+        <li>Sundararajan, Taly, Yan (2017). <em>Axiomatic attribution for deep networks.</em> ICML.</li>
+        <li>Simonyan, Vedaldi, Zisserman (2013). <em>Deep Inside Convolutional Networks.</em> ICLR workshop.</li>
+        <li>Ribeiro, Singh, Guestrin (2016). <em>"Why Should I Trust You?": Explaining the Predictions of Any Classifier.</em> KDD.</li>
+        <li>Zeiler &amp; Fergus (2014). <em>Visualizing and understanding convolutional networks.</em> ECCV.</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- TAB 4 — Code -->
+  <!-- ============================================================ -->
+  <section class="tab-content" id="tab-4">
+
+    <h2>Code: Grad-CAM in PyTorch</h2>
+    <p class="section-sub">A minimal-but-real implementation in ~50 lines.</p>
+
+    <p>The implementation below loads a pretrained ResNet-50, registers forward and backward hooks on its last convolutional block, runs Grad-CAM on an input image, and returns a normalized heatmap. No external XAI libraries — just PyTorch and torchvision.</p>
+
+<pre><code class="language-python">import torch
+import torch.nn.functional as F
+from torchvision import models, transforms
+from PIL import Image
+import numpy as np
+
+# 1. Load a pretrained model and set it to eval mode.
+model = models.resnet50(weights=models.ResNet50_Weights.DEFAULT)
+model.eval()
+
+# 2. Pick the target layer. For ResNet-50, the last conv block is layer4.
+target_layer = model.layer4[-1]
+
+# 3. Register hooks to capture the layer's activations and gradients.
+activations = {}
+gradients   = {}
+
+def fwd_hook(module, inp, out):
+    activations['value'] = out
+
+def bwd_hook(module, grad_in, grad_out):
+    gradients['value'] = grad_out[0]
+
+target_layer.register_forward_hook(fwd_hook)
+target_layer.register_full_backward_hook(bwd_hook)
+
+# 4. Preprocess an input image (ImageNet normalization).
+preprocess = transforms.Compose([
+    transforms.Resize(256),
+    transforms.CenterCrop(224),
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                         std=[0.229, 0.224, 0.225]),
+])
+
+img = Image.open('cat.jpg').convert('RGB')
+x   = preprocess(img).unsqueeze(0)                  # shape [1, 3, 224, 224]
+
+# 5. Forward pass; pick the predicted class.
+logits     = model(x)
+pred_class = logits.argmax(dim=1).item()
+
+# 6. Backward pass on the predicted class score.
+model.zero_grad()
+logits[0, pred_class].backward()
+
+# 7. Grad-CAM: weight feature maps by channel-averaged gradients, ReLU, upsample.
+A      = activations['value']                       # [1, 2048, 7, 7]
+grad_A = gradients['value']                         # [1, 2048, 7, 7]
+
+alpha  = grad_A.mean(dim=(2, 3), keepdim=True)      # [1, 2048, 1, 1]
+cam    = F.relu((alpha * A).sum(dim=1, keepdim=True))   # [1, 1, 7, 7]
+
+cam    = F.interpolate(cam, size=(224, 224),
+                       mode='bilinear', align_corners=False)
+cam    = cam.squeeze().detach().numpy()
+cam    = (cam - cam.min()) / (cam.max() - cam.min() + 1e-8)
+
+# `cam` is a 224x224 array in [0, 1]. Overlay on the image with matplotlib:
+# plt.imshow(img); plt.imshow(cam, alpha=0.5, cmap='jet')
+</code></pre>
+
+    <h3>What's happening in each step</h3>
+    <ul>
+      <li><strong>Hooks (steps 2–3).</strong> Hooks let you grab intermediate tensors without rewriting the model. <code>forward_hook</code> captures activations during the forward pass; <code>full_backward_hook</code> captures gradients during backprop.</li>
+      <li><strong>Backward on a scalar (step 6).</strong> <code>logits[0, pred_class]</code> is a scalar — the logit for the predicted class. Calling <code>.backward()</code> on it populates <code>grad_A</code> with $\partial y^c / \partial A^k_{ij}$ for every spatial position and every channel.</li>
+      <li><strong>Channel weights (step 7).</strong> <code>grad_A.mean(dim=(2,3))</code> implements $\alpha_k^c = \frac{1}{Z}\sum_{i,j} \partial y^c / \partial A^k_{ij}$ — global average pooling of the gradients per channel.</li>
+      <li><strong>ReLU.</strong> We only care about features whose presence increases $y^c$. Features pushing the prediction <em>away</em> from the target class are zeroed.</li>
+    </ul>
+
+    <h3>Production-ready alternative</h3>
+    <p>For real projects, use a maintained library rather than rolling your own:</p>
+
+<pre><code class="language-python">from pytorch_grad_cam import GradCAM
+from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
+
+cam = GradCAM(model=model, target_layers=[model.layer4[-1]])
+heatmap = cam(input_tensor=x,
+              targets=[ClassifierOutputTarget(pred_class)])[0]
+</code></pre>
+
+    <p>The <code>pytorch-grad-cam</code> package also implements Grad-CAM++, ScoreCAM, AblationCAM, EigenCAM, and others — useful for comparing methods on your own model.</p>
+
+    <h3>Using SHAP on a CNN</h3>
+
+<pre><code class="language-python">import shap
+
+# Pick a small background set (50–100 images from the training set)
+background = train_images[:100]
+
+# DeepExplainer uses DeepLIFT-style propagation with Shapley baselines
+explainer   = shap.DeepExplainer(model, background)
+shap_values = explainer.shap_values(test_images[:5])
+
+# Visualize per-class pixel attributions
+shap.image_plot(shap_values, test_images[:5])
+</code></pre>
+
+    <div class="callout">
+      <div class="label">Practical note</div>
+      <p>DeepExplainer is fast but only works with TF/Keras and PyTorch with specific layer types. For arbitrary architectures, <code>shap.GradientExplainer</code> is more flexible (uses GradientSHAP). For exhaustive coverage, <code>shap.KernelExplainer</code> works on any model but is extremely slow on images.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- TAB 5 — LLMs -->
+  <!-- ============================================================ -->
+  <section class="tab-content" id="tab-5">
+
+    <h2>Can SHAP Be Used With LLMs?</h2>
+    <p class="section-sub">Yes — with significant caveats, and not as the right tool for every question.</p>
+
+    <p>The short answer: SHAP is well-defined for LLMs, the <code>shap</code> library has dedicated explainers for text models, and it produces useful attributions for classification-style tasks. But the obstacles that make SHAP awkward on images become severe on language, and for the deepest questions about LLM behavior the field is moving toward different techniques entirely.</p>
+
+    <h3>Why LLMs are hard for SHAP</h3>
+    <ol>
+      <li><strong>Input dimensionality.</strong> A 2000-token prompt with a 100k vocabulary is a vastly higher-dimensional input than even a 224×224×3 image. The coalition sum has $2^{2000}$ terms.</li>
+      <li><strong>Cost per coalition.</strong> Each coalition evaluation is a full LLM forward pass, which already costs hundreds of milliseconds. Sampling enough coalitions for stable attributions costs seconds to minutes per explanation.</li>
+      <li><strong>The baseline problem, intensified.</strong> What is a "missing" token? Replace with <code>[MASK]</code>, with a random token from the vocabulary, or simply delete it and shorten the sequence? Each choice yields different SHAP values and encodes different counterfactual semantics.</li>
+      <li><strong>High-dimensional output.</strong> For generation, the "output" isn't a single score but a distribution over thousands of vocabulary items at every position. Which scalar do you attribute? The probability of the actual completion? The logit of a specific token?</li>
+      <li><strong>Compositionality and context dependence.</strong> A token's contribution depends heavily on neighboring tokens. The Shapley axiom of <em>linearity</em> is violated in spirit — meaning isn't additive over tokens.</li>
+    </ol>
+
+    <h3>Where SHAP works well on text</h3>
+    <p>Short-text classification with a frozen model. Sentiment analysis, NLI, hate-speech detection, intent classification. The <code>shap</code> library's <code>PartitionExplainer</code> (the default for text) uses hierarchical Shapley: tokens are grouped, attributions are computed at the group level, and the tree is recursively refined where attributions are large. This brings $2^n$ down to something tractable.</p>
+
+<pre><code class="language-python">import shap
+import transformers
+
+# A short-text classification pipeline
+pipe = transformers.pipeline(
+    "sentiment-analysis",
+    model="distilbert-base-uncased-finetuned-sst-2-english"
+)
+
+explainer   = shap.Explainer(pipe)
+shap_values = explainer(["The film was a delight, but ran far too long."])
+
+# Renders an HTML visualization with each token colored by attribution
+shap.plots.text(shap_values)
+</code></pre>
+
+    <p>This works well, runs in a few seconds, and produces interpretable per-token attributions. It is the right tool when the question is <em>"which words in this short input drove this classification?"</em></p>
+
+    <h3>Where SHAP struggles or breaks</h3>
+    <ul>
+      <li><strong>Open-ended generation.</strong> "Why did the model write <em>this</em> paragraph?" doesn't reduce to single-token attribution because the answer is a structured object.</li>
+      <li><strong>Long contexts.</strong> 32k or 128k token windows make even PartitionSHAP impractical. You can sample, but variance becomes unacceptable.</li>
+      <li><strong>Behavioral questions.</strong> "Does this model have a sycophancy bias?" is a global property, not a per-token attribution. SHAP doesn't address it.</li>
+      <li><strong>Causal reasoning.</strong> SHAP attributions are correlational. They tell you what the model uses; they don't tell you what would happen if you intervened on a feature.</li>
+    </ul>
+
+    <h3>What practitioners reach for instead</h3>
+
+    <h4>Gradient-based attribution on embeddings</h4>
+    <p>Integrated Gradients still works on LLMs if applied to token embeddings rather than tokens themselves. The <code>captum</code> library (PyTorch) and <code>transformers-interpret</code> wrap this conveniently. Faster than SHAP, often comparable quality for short inputs.</p>
+
+    <h4>Attention attribution</h4>
+    <p>Transformers expose attention weights for free. Visualizing them is tempting and common — but Jain &amp; Wallace (2019) and Wiegreffe &amp; Pinter (2019) demonstrated that attention weights are <em>not</em> reliable explanations: alternative attention patterns can produce the same output. Treat attention visualizations as suggestive heuristics, not faithful explanations.</p>
+
+    <h4>Mechanistic interpretability</h4>
+    <p>The emerging research frontier for LLMs. Rather than asking "which input tokens mattered," ask "which internal computations does the model perform, and what do they encode?" Active sub-areas:</p>
+    <ul>
+      <li><strong>Probing</strong> — train a small classifier on intermediate activations to detect whether the model encodes a given property (syntax, factuality, sentiment). Limited: presence of information doesn't mean the model uses it.</li>
+      <li><strong>Activation patching / causal tracing</strong> — replace activations at specific layers/positions with those from a different input; observe how the output changes. Reveals which components are causally involved in a behavior.</li>
+      <li><strong>Circuit analysis</strong> — identify small sub-networks of attention heads and MLP neurons that implement a specific capability (e.g., the "indirect object identification" circuit in GPT-2 small, mapped by Wang et al. 2022).</li>
+      <li><strong>Sparse autoencoders (SAEs)</strong> — train an over-complete sparse dictionary on the model's hidden states. The learned features are often monosemantic and human-interpretable. Anthropic's interpretability team has scaled this approach to extract millions of features from Claude-class models (Templeton et al., 2024).</li>
+    </ul>
+
+    <h4>Influence functions</h4>
+    <p>"Which <em>training examples</em> most affected this prediction?" Mathematically elegant but computationally brutal; recent approximations (TRAK, Park et al. 2023) make it feasible on large models.</p>
+
+    <h4>Self-explanation and chain-of-thought</h4>
+    <p>Ask the model to explain itself. Plausible and cheap. Often unfaithful: <em>stated reasons may not match actual computation</em>. Recent work (Turpin et al., 2023) shows LLMs can produce convincing chain-of-thought explanations that have no relation to their actual decision process when an artificial bias is introduced.</p>
+
+    <div class="callout warn">
+      <div class="label">Field reality</div>
+      <p>There is no single XAI method that gives faithful, scalable, semantically rich explanations of arbitrary LLM behavior. For classification, use SHAP or IG. For mechanistic questions, use causal tracing and SAEs. For behavioral audits, use evaluations and red-teaming. The right method depends on the question.</p>
+    </div>
+
+    <div class="refs">
+      <h4>Pointers</h4>
+      <ol>
+        <li>Jain &amp; Wallace (2019). <em>Attention is not Explanation.</em> NAACL.</li>
+        <li>Wiegreffe &amp; Pinter (2019). <em>Attention is not not Explanation.</em> EMNLP.</li>
+        <li>Wang et al. (2022). <em>Interpretability in the Wild: a Circuit for Indirect Object Identification in GPT-2 small.</em></li>
+        <li>Templeton et al. (2024). <em>Scaling Monosemanticity: Extracting Interpretable Features from Claude 3 Sonnet.</em> Anthropic.</li>
+        <li>Turpin et al. (2023). <em>Language Models Don't Always Say What They Think.</em> NeurIPS.</li>
+        <li>Park et al. (2023). <em>TRAK: Attributing Model Behavior at Scale.</em> ICML.</li>
+      </ol>
+    </div>
+  </section>
+
+  <footer>
+    Lecture notes for AI master's students · Aptos navy on white · Updated 2026
+  </footer>
+
+</div>
+
+<script>
+  // Tab switching
+  const tabs = document.querySelectorAll('nav.tabs button');
+  const sections = document.querySelectorAll('section.tab-content');
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const id = tab.getAttribute('data-tab');
+      tabs.forEach(t => t.classList.remove('active'));
+      sections.forEach(s => s.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('tab-' + id).classList.add('active');
+      // Re-typeset math in the newly visible tab (if MathJax loaded)
+      if (window.MathJax && window.MathJax.typesetPromise) {
+        window.MathJax.typesetPromise([document.getElementById('tab-' + id)]);
+      }
+      // Scroll to top of content
+      window.scrollTo({ top: document.querySelector('nav.tabs').offsetTop - 8, behavior: 'smooth' });
+    });
+  });
+
+  // Initial syntax highlighting
+  if (window.hljs) {
+    document.querySelectorAll('pre code').forEach(block => hljs.highlightElement(block));
+  }
+</script>
+</body>
+</html>
