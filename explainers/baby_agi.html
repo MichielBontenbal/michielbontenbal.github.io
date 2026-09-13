@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>History of LLMs: BabyAGI, the first steps towards reasoning and agentic AI</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #F5F0E8; color: #1a1a1a; padding: 1.5rem; max-width: 820px; margin: 0 auto; }
+  h1 { font-size: 26px; font-weight: 500; margin-bottom: .75rem; }
+  h2 { font-size: 19px; font-weight: 500; margin: 1.75rem 0 .6rem; }
+  h3 { font-size: 16px; font-weight: 500; margin: 0 0 .4rem; }
+  p { font-size: 16px; line-height: 1.7; margin-bottom: .75rem; }
+  p.muted, .muted { color: #5f5e5a; }
+  ul, ol { margin: 0 0 .75rem 1.2rem; }
+  li { font-size: 16px; line-height: 1.7; margin-bottom: .35rem; }
+  a { color: #0c447c; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 14px; background: #e7e4db; padding: 1px 5px; border-radius: 4px; }
+  pre { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; line-height: 1.55; background: #e7e4db; border-radius: 8px; padding: .7rem .8rem; white-space: pre-wrap; word-wrap: break-word; margin-top: .5rem; }
+  .card { background: #f1efe8; border-radius: 12px; padding: 1.25rem 1.5rem; margin-bottom: 1rem; border: 0.5px solid #d3d1c7; }
+  .pill { display: inline-block; font-size: 14px; padding: 3px 10px; border-radius: 20px; font-weight: 500; white-space: nowrap; }
+  .pill-purple { background: #EEEDFE; color: #3C3489; }
+  .pill-teal   { background: #E1F5EE; color: #085041; }
+  .pill-amber  { background: #FAEEDA; color: #633806; }
+  .pill-grey   { background: #e7e4db; color: #444441; }
+  .field-label { font-size: 15px; color: #5f5e5a; display: block; margin-bottom: .45rem; }
+  textarea, input[type=text] { width: 100%; font-family: inherit; font-size: 16px; line-height: 1.6; padding: .6rem .8rem; border: 0.5px solid #b4b2a9; border-radius: 8px; background: #fff; color: #1a1a1a; }
+  textarea { resize: vertical; min-height: 70px; }
+  button { background: #fff; border: 0.5px solid #b4b2a9; border-radius: 8px; padding: 8px 20px; font-size: 16px; color: #1a1a1a; cursor: pointer; font-family: inherit; transition: background .15s; }
+  button:hover:not(:disabled) { background: #f0ede6; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  button.primary { background: #e6f1fb; border-color: #85b7eb; color: #0c447c; }
+  button.primary:hover:not(:disabled) { background: #d5e7f8; }
+  button.chip { font-size: 14px; padding: 4px 12px; border-radius: 20px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: .55rem 0 1rem; }
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: .9rem 0 0; }
+  .row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .row label { font-size: 15px; min-width: 150px; color: #5f5e5a; }
+  .row input[type=range] { flex: 1; min-width: 0; accent-color: #3C3489; }
+  .row .val { font-size: 15px; min-width: 40px; text-align: right; font-variant-numeric: tabular-nums; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 20px; margin-top: 1rem; }
+  .spinner { display: none; width: 14px; height: 14px; border-radius: 50%; border: 2px solid #cfccc2; border-top-color: #3C3489; animation: spin .8s linear infinite; margin-right: 8px; flex: none; }
+  .spinner.on { display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #statusrow { display: flex; align-items: center; margin-top: .9rem; min-height: 22px; }
+  #status { font-size: 15px; color: #5f5e5a; }
+  .bar { height: 6px; background: #e0ddd3; border-radius: 3px; overflow: hidden; margin-top: .55rem; display: none; }
+  .bar.on { display: block; }
+  .bar > div { height: 100%; width: 0%; background: #3C3489; border-radius: 3px; transition: width .2s; }
+  .bar.indeterminate > div { width: 35%; animation: slide 1.3s ease-in-out infinite; transition: none; }
+  @keyframes slide { 0% { margin-left: -35%; } 100% { margin-left: 100%; } }
+  .warn { font-size: 14px; line-height: 1.6; color: #633806; background: #FAEEDA; border-radius: 8px; padding: .6rem .8rem; margin-top: .7rem; display: none; }
+  .warn.on { display: block; }
+
+  /* Device check */
+  .dev-rows { display: grid; grid-template-columns: max-content 1fr; gap: .3rem 1.2rem; font-size: 15px; line-height: 1.5; margin: 0; }
+  .dev-rows dt { color: #5f5e5a; }
+  .dev-rows dd { margin: 0; overflow-wrap: anywhere; }
+  .verdict { margin-top: .9rem; padding: .65rem .85rem; border-radius: 8px; font-size: 15px; line-height: 1.6; }
+  .verdict strong { font-weight: 600; }
+  .verdict.checking { background: #e7e4db; color: #5f5e5a; }
+  .verdict.ok    { background: #E1F5EE; color: #085041; }
+  .verdict.warn  { background: #FAEEDA; color: #633806; }
+  .verdict.block { background: #FCEBEB; color: #A32D2D; }
+  button.danger, button.danger:disabled { background: #FCEBEB; border-color: #E24B4A; color: #A32D2D; opacity: 1; }
+  button.caution { background: #FAEEDA; border-color: #EF9F27; color: #633806; }
+  button.caution:hover:not(:disabled) { background: #f6e2c0; }
+
+  /* The loop diagram */
+  .loop { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+  .node { flex: 1 1 110px; text-align: center; font-size: 14px; line-height: 1.35; padding: .55rem .4rem; border-radius: 8px; border: 0.5px solid #d3d1c7; background: #fff; color: #5f5e5a; transition: background .2s, border-color .2s, color .2s; }
+  .node strong { display: block; font-weight: 500; color: #1a1a1a; font-size: 14px; }
+  .node.active { background: #EEEDFE; border-color: #7F77DD; color: #3C3489; }
+  .node.active strong { color: #3C3489; }
+  .arrow { color: #888780; font-size: 16px; flex: none; }
+  .loop-back { font-size: 13px; color: #888780; margin-top: .45rem; text-align: center; }
+
+  /* Task list */
+  #queue { list-style: none; margin: 0; counter-reset: q; }
+  #queue li { counter-increment: q; position: relative; font-size: 15px; line-height: 1.5; padding: .45rem .6rem .45rem 2.1rem; border-radius: 8px; margin-bottom: 4px; background: #fff; border: 0.5px solid #e0ddd3; }
+  #queue li::before { content: counter(q); position: absolute; left: .7rem; color: #888780; font-variant-numeric: tabular-nums; }
+  #queue li.running { background: #EEEDFE; border-color: #7F77DD; color: #3C3489; }
+  #queue li.running::before { content: "▶"; color: #3C3489; font-size: 12px; top: .6rem; }
+  #queue li.empty { background: none; border: none; color: #888780; padding-left: 0; }
+  #queue li.empty::before { content: none; }
+
+  /* Agent log */
+  #log:empty::before { content: "Nothing has run yet. Each call to the model will show up here, with the exact prompt BabyAGI sent."; color: #888780; font-size: 15px; }
+  .entry { background: #fff; border: 0.5px solid #d3d1c7; border-radius: 10px; padding: .8rem 1rem; margin-bottom: .6rem; }
+  .entry-head { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; margin-bottom: .4rem; }
+  .entry-head .iter { font-size: 13px; color: #888780; margin-left: auto; font-variant-numeric: tabular-nums; }
+  .entry-title { font-size: 15px; font-weight: 500; }
+  .entry details summary { font-size: 14px; color: #5f5e5a; cursor: pointer; margin: .2rem 0; }
+  .resp { font-size: 15px; line-height: 1.65; white-space: pre-wrap; word-wrap: break-word; margin-top: .4rem; }
+  .resp.md { white-space: normal; }
+  .parsed { font-size: 14px; color: #5f5e5a; margin-top: .6rem; padding-top: .5rem; border-top: 0.5px dashed #d3d1c7; }
+  .parsed ol { margin: .3rem 0 0 1.3rem; }
+  .parsed li { font-size: 14px; line-height: 1.5; margin-bottom: .1rem; }
+  .caret { display: inline-block; width: 7px; height: 15px; background: #3C3489; vertical-align: -2px; animation: blink 1s steps(1) infinite; margin-left: 1px; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* Results */
+  #results:empty::before { content: "Completed tasks and their results will be collected here."; color: #888780; font-size: 15px; }
+  .result { background: #fff; border: 0.5px solid #d3d1c7; border-radius: 10px; padding: .9rem 1.1rem; margin-bottom: .6rem; }
+  .result .n { color: #888780; font-weight: 400; margin-right: 4px; }
+  .md p { font-size: 15px; line-height: 1.65; margin-bottom: .5rem; }
+  .md p:last-child { margin-bottom: 0; }
+  .md ul, .md ol { margin: 0 0 .5rem 1.3rem; }
+  .md li { font-size: 15px; line-height: 1.6; margin-bottom: .15rem; }
+  .md .h { font-weight: 500; margin: .6rem 0 .3rem; font-size: 15px; }
+
+  .footer { font-size: 14px; color: #888780; margin-top: 2rem; line-height: 1.6; }
+
+  @media (prefers-color-scheme: dark) {
+    body { background: #1a1a1a; color: #e8e6df; }
+    p, li { color: #e8e6df; }
+    p.muted, .muted, .row label, #status, .field-label, .entry details summary, .parsed { color: #b4b2a9; }
+    a { color: #85b7eb; }
+    code, pre { background: #2e2e2c; }
+    .card { background: #252523; border-color: #3a3a38; }
+    .pill-purple { background: #3C3489; color: #CECBF6; }
+    .pill-teal   { background: #085041; color: #9FE1CB; }
+    .pill-amber  { background: #633806; color: #FAC775; }
+    .pill-grey   { background: #3a3a38; color: #d3d1c7; }
+    textarea, input[type=text], button { background: #2e2e2c; border-color: #3a3a38; color: #e8e6df; }
+    button:hover:not(:disabled) { background: #3a3a38; }
+    button.primary { background: #0c447c; border-color: #378add; color: #b5d4f4; }
+    button.primary:hover:not(:disabled) { background: #10559a; }
+    .row input[type=range] { accent-color: #7F77DD; }
+    .bar { background: #3a3a38; }
+    .spinner { border-color: #4a4a47; border-top-color: #7F77DD; }
+    .warn { background: #633806; color: #FAC775; }
+    .bar > div, .caret { background: #7F77DD; }
+    .node, #queue li, .entry, .result { background: #1a1a1a; border-color: #3a3a38; color: #b4b2a9; }
+    .node strong { color: #e8e6df; }
+    .node.active, #queue li.running { background: #3C3489; border-color: #7F77DD; color: #CECBF6; }
+    .node.active strong { color: #CECBF6; }
+    #queue li.running::before { color: #CECBF6; }
+    #queue li.empty { background: none; }
+    .parsed { border-color: #3a3a38; }
+    .dev-rows dt { color: #b4b2a9; }
+    .verdict.checking { background: #2e2e2c; color: #b4b2a9; }
+    .verdict.ok    { background: #085041; color: #9FE1CB; }
+    .verdict.warn  { background: #633806; color: #FAC775; }
+    .verdict.block { background: #501313; color: #F7C1C1; }
+    button.danger, button.danger:disabled { background: #501313; border-color: #A32D2D; color: #F7C1C1; }
+    button.caution { background: #633806; border-color: #BA7517; color: #FAC775; }
+    button.caution:hover:not(:disabled) { background: #7a4608; }
+    .resp, .entry-title, .result h3 { color: #e8e6df; }
+  }
+  @media (max-width: 600px) {
+    body { padding: 1rem; }
+    .card { padding: 1rem; }
+    .grid-2 { grid-template-columns: 1fr; }
+    .row label { min-width: 120px; }
+    .arrow { display: none; }
+    .node { flex-basis: 45%; }
+  }
+</style>
+</head>
+<body>
+
+<h1>History of LLMs: BabyAGI, the first steps towards reasoning and agentic AI</h1>
+
+<p class="muted">Give BabyAGI a goal and it writes its own to-do list, works through it one task at a time,
+and keeps adding new tasks based on what it just did. This is the original 2023 script by
+<a href="https://github.com/yoheinakajima/babyagi_archive">Yohei Nakajima</a>, rebuilt as a web page. Instead of
+calling GPT-3.5 through the OpenAI API, every step is run by <strong>Qwen3-1.7B</strong> on your own graphics card.</p>
+
+<div class="card" id="devicecard">
+  <h3>Can your device run it?</h3>
+  <p class="muted" style="font-size:15px;margin-bottom:.7rem;">The model runs on your own graphics card, not on a server. It needs a GPU
+  with about 8&nbsp;GB of memory to run properly.</p>
+  <dl class="dev-rows">
+    <dt>Operating system</dt><dd id="dev-os">checking…</dd>
+    <dt>GPU</dt><dd id="dev-gpu">checking…</dd>
+    <dt>GPU memory</dt><dd id="dev-mem">checking…</dd>
+  </dl>
+  <div class="verdict checking" id="dev-verdict">Checking your hardware…</div>
+</div>
+
+<div class="card">
+  <label class="field-label" for="objective">Objective: what should BabyAGI achieve?</label>
+  <textarea id="objective" spellcheck="false">Make a study plan for a first-year student who wants to learn the basics of machine learning in four weeks</textarea>
+  <div class="chips" id="examples">
+    <button class="chip" data-goal="Write a short blog post that explains what a neural network is to high school students">Blog post</button>
+    <button class="chip" data-goal="Organise a birthday party for 10 friends on a student budget of 100 euros">Party on a budget</button>
+    <button class="chip" data-goal="Come up with a business plan for a coffee cart on the university campus">Coffee cart</button>
+    <button class="chip" data-goal="Solve world hunger">Solve world hunger</button>
+  </div>
+
+  <label class="field-label" for="firsttask">First task: BabyAGI needs one task to get going</label>
+  <input type="text" id="firsttask" spellcheck="false" value="Develop a task list">
+
+  <div class="grid-2">
+    <div class="row"><label for="iters">Iterations</label><input type="range" id="iters" min="1" max="8" step="1" value="3"><span class="val" id="itersv">3</span></div>
+    <div class="row"><label for="ntok">Max tokens per task</label><input type="range" id="ntok" min="100" max="800" step="50" value="350"><span class="val" id="ntokv">350</span></div>
+  </div>
+
+  <div class="btn-row">
+    <button class="primary" id="run">Run BabyAGI</button>
+    <button id="stop" disabled>Stop</button>
+    <button id="reset" disabled>Clear</button>
+  </div>
+
+  <div id="statusrow"><span class="spinner" id="spin"></span><span id="status">Model not loaded yet. The first run downloads about 1.4&nbsp;GB, once.</span></div>
+  <div class="bar" id="bar"><div id="barfill"></div></div>
+  <div class="warn" id="warn"></div>
+</div>
+
+<h2>The loop</h2>
+<div class="card">
+  <div class="loop" id="loop">
+    <div class="node" data-step="queue"><strong>Task list</strong>take the top task</div>
+    <span class="arrow">→</span>
+    <div class="node" data-step="execution"><strong>Execution agent</strong>do the task</div>
+    <span class="arrow">→</span>
+    <div class="node" data-step="memory"><strong>Memory</strong>store the result</div>
+    <span class="arrow">→</span>
+    <div class="node" data-step="creation"><strong>Task creation agent</strong>add new tasks</div>
+    <span class="arrow">→</span>
+    <div class="node" data-step="prioritization"><strong>Prioritisation agent</strong>reorder the list</div>
+  </div>
+  <p class="loop-back">↺ then back to the task list, until the list is empty (or, here, until the iteration limit)</p>
+</div>
+
+<h2>Task list</h2>
+<div class="card">
+  <ol id="queue"><li class="empty">The queue is empty. Press <em>Run BabyAGI</em> to add the first task.</li></ol>
+</div>
+
+<h2>Agent log</h2>
+<div id="log"></div>
+
+<h2>Result</h2>
+<p class="muted">The original BabyAGI never writes a final answer. Its output <em>is</em> the list of completed tasks and what
+the execution agent wrote for each one, so that is what is collected below.</p>
+<div id="results"></div>
+<div class="btn-row" style="margin-bottom:1rem;"><button id="copy" disabled>Copy results as Markdown</button><span class="muted" id="copied" style="font-size:14px;"></span></div>
+
+<h2>What BabyAGI is</h2>
+<p>In the spring of 2023, a few weeks after GPT-4 came out, Yohei Nakajima posted a Python script of roughly 150
+lines that he called a <em>task-driven autonomous agent</em>. It was renamed BabyAGI, got tens of thousands of
+GitHub stars within weeks, and together with AutoGPT it kicked off the first wave of "AI agents". The name is a
+joke: nothing about it is general intelligence. The interesting part is how <em>little</em> it takes: three
+prompts and a <code>while</code> loop.</p>
+
+<p>Each pass through the loop calls the language model three times, each time with a different job:</p>
+<ul>
+  <li><span class="pill pill-purple">execution agent</span> gets the objective, one task and the names of up to
+  five earlier tasks, and is asked to "perform" the task. Whatever text comes back counts as the result.</li>
+  <li><span class="pill pill-teal">task creation agent</span> reads that result and writes a numbered list of new
+  tasks that must not overlap with the ones still waiting.</li>
+  <li><span class="pill pill-amber">prioritisation agent</span> gets the whole waiting list and returns it
+  reordered, with the most essential tasks first.</li>
+</ul>
+<p>Between these calls there is no intelligence at all, only string handling. Python splits each answer on newlines,
+keeps lines that look like <code>3. Some task</code>, strips punctuation, and puts the result in a queue. Open the
+<em>prompt</em> and <em>parsed</em> parts of the agent log above to see both halves: what the model was asked, and what
+the code made of its answer.</p>
+
+<h2>Things to watch for</h2>
+<ul>
+  <li><strong>It cannot actually do anything.</strong> The agent has no tools, no web search and no way to check
+  anything. If a task says "research the best textbooks", the execution agent simply writes something that
+  <em>sounds</em> like research. Every "result" is the model's imagination.</li>
+  <li><strong>The list rarely gets shorter.</strong> Each finished task usually produces several new ones, so the
+  queue grows faster than it is worked off. The original ran forever unless you pressed Ctrl-C.</li>
+  <li><strong>Memory is thinner than it looks.</strong> Earlier <em>results</em> are stored, but the execution agent
+  is only shown the <em>names</em> of earlier tasks. So it regularly redoes, or contradicts, work it has already
+  done.</li>
+  <li><strong>The code trusts the model completely.</strong> The prioritisation prompt says "Do not remove any
+  tasks", but whatever list comes back replaces the queue. When the model drops or invents a task, the log flags
+  it.</li>
+  <li><strong>Try a vague objective.</strong> "Solve world hunger" shows most clearly how an agent without tools and
+  without a stop criterion drifts into ever more abstract tasks.</li>
+</ul>
+<p>Almost every agent framework since, including the coding agents in use today, is an answer to one of these
+problems: give the model real tools, feed the actual results back in, and decide explicitly when the goal has
+been reached.</p>
+
+<h2>What is different from the original</h2>
+<p>The prompts, the parsing and the order of the loop are copied from
+<a href="https://github.com/yoheinakajima/babyagi_archive/blob/main/babyagi.py"><code>babyagi.py</code></a>.
+A few things had to change to run it in a browser tab:</p>
+<ul>
+  <li><strong>The model.</strong> GPT-3.5-turbo behind the OpenAI API is replaced by
+  <a href="https://huggingface.co/Qwen/Qwen3-1.7B">Qwen3-1.7B</a>, a model with 1.7 billion
+  parameters, compressed to 4 bits. Qwen3 can "think" before it answers; that mode is switched off so each agent
+  answers directly, as GPT-3.5 did.</li>
+  <li><strong>Sampling.</strong> The original used temperature 0. Small models tend to repeat themselves when
+  decoding greedily, so this page uses Qwen's recommended settings (temperature 0.7, top-p 0.8, top-k 20). Two runs
+  with the same objective will therefore turn out differently.</li>
+  <li><strong>Memory.</strong> The original stored results in a vector database (Chroma or Pinecone) with OpenAI
+  embeddings, and looked up the five results closest to the objective. Here the same lookup is done with simple
+  word-overlap similarity, which avoids downloading a second model.</li>
+  <li><strong>Parsing.</strong> The prompts show the list format as <code>#. First task</code>. GPT-3.5 understood
+  that the <code>#</code> stands for a number; Qwen3-1.7B often writes the <code>#</code> literally. The original
+  parser needs a digit before the period and would throw those lines away, ending the run after one task. This page
+  accepts a literal <code>#</code> too, and says so in the log whenever it happens.</li>
+  <li><strong>Repetition.</strong> Left alone, the small model tends to write the same few tasks again and again
+  until it runs out of tokens. So the task creation agent is cut off as soon as it repeats a line, and tasks that
+  are already on the list are not added a second time. The log shows when either happens.</li>
+  <li><strong>Limits.</strong> The loop stops after a set number of iterations instead of running forever, and the
+  task creation and prioritisation agents are capped at 300 tokens (their lists are short) instead of 2000.</li>
+</ul>
+
+<h2>How this page runs a 1.7B model without a server</h2>
+<p>The page loads <a href="https://huggingface.co/docs/transformers.js">Transformers.js</a>, which runs ONNX models
+through ONNX Runtime Web. With <strong>WebGPU</strong> the matrix multiplications run on your graphics card, which is
+what makes a model of this size usable at all: roughly ten times as many parameters as the
+<a href="/explainers/gpt2_in_browser.html">GPT-2 explainer</a>. The weights are a <code>q4f16</code> export (4-bit
+weights, 16-bit activations) of about 1.4&nbsp;GB. The browser downloads them once and caches them, so a second
+visit only has to load them onto the GPU.</p>
+<p>One practical detail: the official <a href="https://huggingface.co/onnx-community/Qwen3-1.7B-ONNX">onnx-community</a>
+export stores the whole model in a single 1.4&nbsp;GB <code>.onnx</code> file. ONNX Runtime Web has to read that file
+into WebAssembly memory before it can hand the weights to the GPU, and it runs out of memory
+(<code>std::bad_alloc</code>). This page loads <a href="https://huggingface.co/Exempliss/Qwen3-1.7B-ONNX-Split">a copy
+of the same export</a> with the weights split off into a separate <code>.onnx_data</code> file, which ONNX Runtime
+Web loads separately, so it fits.</p>
+<p>The model runs in a Web Worker, so the page stays responsive while it generates and the Stop button can end a
+generation between two tokens. Everything is static: GitHub Pages only serves files, and your objective never
+leaves your computer.</p>
+
+<p class="footer">Original: <a href="https://github.com/yoheinakajima/babyagi_archive">yoheinakajima/babyagi_archive</a> (MIT) ·
+Model: <a href="https://huggingface.co/Qwen/Qwen3-1.7B">Qwen3-1.7B</a>, ONNX export by
+<a href="https://huggingface.co/onnx-community/Qwen3-1.7B-ONNX">onnx-community</a>, split copy at
+<a href="https://huggingface.co/Exempliss/Qwen3-1.7B-ONNX-Split">Exempliss/Qwen3-1.7B-ONNX-Split</a> ·
+Runtime: <a href="https://github.com/huggingface/transformers.js">Transformers.js 4.2</a> ·
+Needs a browser with WebGPU: a recent Chrome or Edge on a laptop or desktop works best.</p>
+
+<script type="module">
+const LIB = 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.2.0';
+const MODEL = 'Exempliss/Qwen3-1.7B-ONNX-Split';
+const DTYPE = 'q4f16';
+const LIST_TOKENS = 300;   // task creation and prioritisation only return short lists
+
+// ── The model engine ──────────────────────────────────────────────────────────
+// One function holds the whole engine. It normally runs inside a Web Worker (built
+// from its own source text, so this stays a single HTML file); if a worker cannot be
+// started, for example when the file is opened from disk, the same function runs on
+// the main thread instead. It returns a message handler; `post` sends messages back.
+async function createEngine(LIB, MODEL, DTYPE, post) {
+  const { pipeline, TextStreamer, InterruptableStoppingCriteria, env } = await import(LIB);
+  env.allowLocalModels = false;
+  const stopper = new InterruptableStoppingCriteria();
+  let generator = null;
+
+  return async function onMessage(msg) {
+    if (msg.type === 'interrupt') { stopper.interrupt(); return; }
+    if (msg.type !== 'generate') return;
+    const { id, prompt, max_new_tokens, stopOnRepeatedLine } = msg;
+    // Reset before loading, so a Stop pressed during the download still counts.
+    stopper.reset();
+    try {
+      if (!generator) {
+        generator = await pipeline('text-generation', MODEL, {
+          device: 'webgpu', dtype: DTYPE,
+          progress_callback: d => post({ type: 'progress', d })
+        });
+        post({ type: 'loaded' });
+      }
+      // BabyAGI sends one plain prompt, so it becomes a single user message.
+      // enable_thinking: false stops Qwen3 from writing a <think> block first.
+      const text = generator.tokenizer.apply_chat_template(
+        [{ role: 'user', content: prompt }],
+        { tokenize: false, add_generation_prompt: true, enable_thinking: false }
+      );
+      // Small models can get stuck writing the same lines over and over. When asked, stop
+      // as soon as a line repeats one written earlier, using the same switch as Stop.
+      let tokens = 0, written = '', repeated = false;
+      const streamer = new TextStreamer(generator.tokenizer, {
+        skip_prompt: true, skip_special_tokens: true,
+        callback_function: t => {
+          post({ type: 'token', id, text: t });
+          if (!stopOnRepeatedLine || repeated) return;
+          written += t;
+          const lines = written.split('\n').slice(0, -1).map(l => l.trim()).filter(Boolean);
+          if (lines.length > 1 && lines.indexOf(lines.at(-1)) < lines.length - 1) { repeated = true; stopper.interrupt(); }
+        },
+        token_callback_function: () => { tokens++; }
+      });
+      const out = await generator(text, {
+        max_new_tokens, do_sample: true, temperature: 0.7, top_p: 0.8, top_k: 20,
+        add_special_tokens: false, return_full_text: false,
+        streamer, stopping_criteria: stopper
+      });
+      post({ type: 'done', id, text: out[0].generated_text, tokens, repeated, interrupted: stopper.interrupted && !repeated });
+    } catch (err) {
+      post({ type: 'error', id, message: String(err && err.message || err) });
+    }
+  };
+}
+
+const engineArgs = `${JSON.stringify(LIB)}, ${JSON.stringify(MODEL)}, ${JSON.stringify(DTYPE)}`;
+const workerSource = `
+const handler = (${createEngine.toString()})(${engineArgs}, m => self.postMessage(m));
+handler.catch(err => self.postMessage({ type: 'error', id: null, message: String(err && err.message || err) }));
+self.onmessage = async ({ data }) => (await handler)(data);
+`;
+
+let worker = null, mainHandler = null, onEngineMessage = () => {};
+
+function send(msg) {
+  if (mainHandler) { mainHandler.then(h => h(msg)); return; }
+  if (!worker) {
+    try {
+      const url = URL.createObjectURL(new Blob([workerSource], { type: 'text/javascript' }));
+      worker = new Worker(url, { type: 'module' });
+      URL.revokeObjectURL(url);
+      worker.onmessage = ({ data }) => onEngineMessage(data);
+      // A blob module worker can die asynchronously (e.g. on file://): fall back.
+      worker.onerror = e => { e.preventDefault?.(); useMainThread(); };
+    } catch { useMainThread(); }
+  }
+  if (worker) worker.postMessage(msg);
+  else if (pending?.msg !== msg) send(msg);   // a pending request was already replayed by useMainThread()
+}
+
+function useMainThread() {
+  try { worker?.terminate(); } catch {}
+  worker = null;
+  if (mainHandler) return;
+  mainHandler = createEngine(LIB, MODEL, DTYPE, m => onEngineMessage(m));
+  mainHandler.catch(err => onEngineMessage({ type: 'error', id: null, message: String(err && err.message || err) }));
+  if (pending) mainHandler.then(h => h(pending.msg));   // replay the request the worker never answered
+}
+
+// A single generation at a time: that is all BabyAGI needs.
+let pending = null, nextId = 1, modelLoaded = false;
+
+function generate(prompt, max_new_tokens, onToken, stopOnRepeatedLine = false) {
+  return new Promise((resolve, reject) => {
+    const msg = { type: 'generate', id: nextId++, prompt, max_new_tokens, stopOnRepeatedLine };
+    pending = { msg, resolve, reject, onToken };
+    send(msg);
+  });
+}
+
+onEngineMessage = m => {
+  if (m.type === 'progress') return onProgress(m.d);
+  if (m.type === 'loaded') { modelLoaded = true; return; }
+  if (!pending || (m.id !== null && m.id !== pending.msg.id)) return;
+  if (m.type === 'token') pending.onToken(m.text);
+  else if (m.type === 'done') { const p = pending; pending = null; p.resolve(m); }
+  else if (m.type === 'error') { const p = pending; pending = null; p.reject(new Error(m.message)); }
+};
+
+// ── Page helpers ──────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const statusEl = $('status'), spin = $('spin'), bar = $('bar'), barfill = $('barfill'), warnEl = $('warn');
+const runBtn = $('run'), stopBtn = $('stop'), resetBtn = $('reset'), copyBtn = $('copy');
+const queueEl = $('queue'), logEl = $('log'), resultsEl = $('results');
+
+for (const id of ['iters', 'ntok']) {
+  const el = $(id), out = $(id + 'v');
+  const sync = () => out.textContent = el.value;
+  el.addEventListener('input', sync); sync();
+}
+$('examples').addEventListener('click', e => {
+  const goal = e.target.closest('button')?.dataset.goal;
+  if (goal) $('objective').value = goal;
+});
+
+function say(msg, { spinning = false, progress = null } = {}) {
+  statusEl.textContent = msg;
+  spin.classList.toggle('on', spinning);
+  if (progress === null) bar.classList.remove('on', 'indeterminate');
+  else if (progress === 'indeterminate') bar.classList.add('on', 'indeterminate');
+  else { bar.classList.add('on'); bar.classList.remove('indeterminate'); barfill.style.width = progress.toFixed(1) + '%'; }
+}
+function warn(html) { warnEl.innerHTML = html; warnEl.classList.add('on'); }
+
+function onProgress(d) {
+  if (d.status === 'progress_total' && d.total > 5e6) {
+    if (d.progress < 99.9) {
+      say(`Downloading Qwen3-1.7B: ${(d.loaded / 1e6).toFixed(0)} of ${(d.total / 1e6).toFixed(0)} MB. This happens once; afterwards it loads from your browser cache.`,
+          { spinning: true, progress: d.progress });
+    } else {
+      say('Loading the model onto your GPU…', { spinning: true, progress: 'indeterminate' });
+    }
+  } else if (d.status === 'initiate' && !modelLoaded) {
+    say('Fetching model files…', { spinning: true, progress: 'indeterminate' });
+  }
+}
+
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+}
+
+// A deliberately tiny Markdown renderer: headings, bullet and numbered lists, **bold**.
+// Everything is escaped first, so model output can never inject HTML.
+function renderMarkdown(src) {
+  const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const inline = s => esc(s).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/`([^`]+)`/g, '<code>$1</code>');
+  let html = '', list = null, para = [];
+  const flushPara = () => { if (para.length) { html += `<p>${para.map(inline).join('<br>')}</p>`; para = []; } };
+  const closeList = () => { if (list) { html += `</${list}>`; list = null; } };
+  for (const raw of src.split('\n')) {
+    const line = raw.trim();
+    let m;
+    if (!line || /^-{3,}$/.test(line)) { flushPara(); closeList(); }
+    else if ((m = line.match(/^#{1,6}\s+(.*)$/))) { flushPara(); closeList(); html += `<div class="h">${inline(m[1])}</div>`; }
+    else if ((m = line.match(/^[-*•]\s+(.*)$/)) || (m = line.match(/^\d+[.)]\s+(.*)$/))) {
+      flushPara();
+      const kind = /^\d/.test(line) ? 'ol' : 'ul';
+      if (list !== kind) { closeList(); html += `<${kind}>`; list = kind; }
+      html += `<li>${inline(m[1])}</li>`;
+    }
+    else { closeList(); para.push(line); }
+  }
+  flushPara(); closeList();
+  return html;
+}
+
+function highlight(step) {
+  for (const n of document.querySelectorAll('.node')) n.classList.toggle('active', n.dataset.step === step);
+}
+
+// ── BabyAGI state ─────────────────────────────────────────────────────────────
+let tasks = [];        // the task queue: { task_id, task_name }
+let taskIdCounter = 0; // tasks_storage.next_task_id()
+let completed = [];    // results storage: { task_id, task_name, result }
+let busy = false, stopRequested = false;
+
+function renderQueue(running = null) {
+  queueEl.textContent = '';
+  if (running) queueEl.append(el('li', 'running', running.task_name));
+  for (const t of tasks) queueEl.append(el('li', null, t.task_name));
+  if (!running && !tasks.length) queueEl.append(el('li', 'empty', completed.length ? 'The queue is empty.' : 'The queue is empty. Press Run BabyAGI to add the first task.'));
+}
+
+function renderResults() {
+  resultsEl.textContent = '';
+  completed.forEach((r, i) => {
+    const card = el('div', 'result');
+    const h = el('h3'); h.append(el('span', 'n', `${i + 1}.`), r.task_name);
+    const body = el('div', 'md'); body.innerHTML = renderMarkdown(r.result);
+    card.append(h, body);
+    resultsEl.append(card);
+  });
+  copyBtn.disabled = !completed.length;
+}
+
+// ── Memory: the context agent ─────────────────────────────────────────────────
+// The original embeds every result and asks the vector database for the five results
+// closest to the objective, then passes on only those tasks' *names*. The same
+// lookup, with bag-of-words cosine similarity standing in for embeddings.
+function words(s) { return s.toLowerCase().match(/[\p{L}\p{N}]{3,}/gu) || []; }
+function cosine(a, b) {
+  const va = new Map(), vb = new Map();
+  for (const w of words(a)) va.set(w, (va.get(w) || 0) + 1);
+  for (const w of words(b)) vb.set(w, (vb.get(w) || 0) + 1);
+  let dot = 0, na = 0, nb = 0;
+  for (const [w, x] of va) { na += x * x; if (vb.has(w)) dot += x * vb.get(w); }
+  for (const x of vb.values()) nb += x * x;
+  return na && nb ? dot / Math.sqrt(na * nb) : 0;
+}
+function contextAgent(query, topResultsNum) {
+  return completed
+    .map((r, i) => ({ name: r.task_name, score: cosine(query, r.result), i }))
+    .sort((a, b) => b.score - a.score || b.i - a.i)
+    .slice(0, topResultsNum)
+    .map(r => r.name);
+}
+
+// ── Parsing, exactly as babyagi.py does it ────────────────────────────────────
+// Split on newlines, split each line at its first ".", keep the digits before it as
+// the id, and strip everything but letters, digits, whitespace and "_" from the rest.
+// One addition: GPT-3.5 read "#. First task" as "use a number here", but Qwen3-1.7B
+// often copies the "#" literally. The original would silently drop those lines, so
+// they are accepted here and counted, so the log can point it out.
+function parseNumberedList(response, requireNumericId) {
+  const out = [];
+  let literalHashes = 0;
+  for (const line of response.split('\n')) {
+    const s = line.trim();
+    const dot = s.indexOf('.');
+    if (dot < 0) continue;
+    const prefix = s.slice(0, dot).trim();
+    let task_id = prefix.replace(/[^0-9]/g, '');
+    const task_name = s.slice(dot + 1).replace(/[^\p{L}\p{N}\s_]+/gu, '').trim();
+    if (!task_name) continue;
+    if (!task_id && prefix === '#') { literalHashes++; task_id = String(out.length + 1); }
+    if (task_id || !requireNumericId) out.push({ task_id, task_name });
+  }
+  out.literalHashes = literalHashes;
+  return out;
+}
+const hashNote = list => list.literalHashes
+  ? `Note: the model wrote "#." literally instead of numbering ${list.literalHashes === 1 ? 'a line' : list.literalHashes + ' lines'}. The original parser would have thrown ${list.literalHashes === 1 ? 'it' : 'them'} away; this page keeps ${list.literalHashes === 1 ? 'it' : 'them'}.`
+  : null;
+
+// ── One call to the model, shown as an entry in the agent log ─────────────────
+const AGENTS = {
+  execution:      { label: 'execution agent',      pill: 'pill-purple' },
+  creation:       { label: 'task creation agent',  pill: 'pill-teal' },
+  prioritization: { label: 'prioritisation agent', pill: 'pill-amber' }
+};
+
+async function callAgent(kind, title, prompt, maxTokens, iter, maxIter, stopOnRepeatedLine = false) {
+  highlight(kind);
+  const entry = el('div', 'entry');
+  const head = el('div', 'entry-head');
+  head.append(el('span', `pill ${AGENTS[kind].pill}`, AGENTS[kind].label), el('span', 'entry-title', title), el('span', 'iter', `iteration ${iter} of ${maxIter}`));
+  const details = el('details');
+  details.append(el('summary', null, 'Prompt sent to the model'), el('pre', null, prompt.trim()));
+  const resp = el('div', 'resp');
+  const caret = el('span', 'caret');
+  resp.append(caret);
+  entry.append(head, details, resp);
+  logEl.append(entry);
+
+  let text = '', t0 = null, count = 0;
+  if (!modelLoaded) say('Starting up: fetching the model…', { spinning: true, progress: 'indeterminate' });
+  const out = await generate(prompt, maxTokens, piece => {
+    if (t0 === null) t0 = performance.now();
+    count++;
+    text += piece;
+    caret.before(piece);
+    if (count % 4 === 1) say(`Iteration ${iter} of ${maxIter}: the ${AGENTS[kind].label} is writing…`, { spinning: true, progress: 'indeterminate' });
+  }, stopOnRepeatedLine);
+  caret.remove();
+  const answer = (out.text || text).replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+  if (kind === 'execution') { resp.classList.add('md'); resp.innerHTML = renderMarkdown(answer); }
+  else resp.textContent = answer;
+  if (out.interrupted) resp.append(el('div', 'parsed', 'Stopped before the model finished.'));
+  if (out.repeated) resp.append(el('div', 'parsed', 'Cut off here: the model started repeating a line it had already written.'));
+  const secs = t0 === null ? 0 : (performance.now() - t0) / 1000;
+  return { answer, entry, tokens: out.tokens, secs, interrupted: out.interrupted };
+}
+
+function showParsed(entry, heading, list, note) {
+  const box = el('div', 'parsed', heading);
+  if (list.length) {
+    const ol = el('ol');
+    for (const t of list) ol.append(el('li', null, t.task_name));
+    box.append(ol);
+  }
+  if (note) box.append(el('div', null, note));
+  entry.append(box);
+}
+
+// ── The main loop, following main() in babyagi.py ─────────────────────────────
+async function runBabyAGI() {
+  const OBJECTIVE = $('objective').value.trim();
+  const INITIAL_TASK = $('firsttask').value.trim();
+  if (!OBJECTIVE || !INITIAL_TASK) { say('Fill in both an objective and a first task.'); return; }
+  const maxIter = Number($('iters').value), maxTokens = Number($('ntok').value);
+
+  busy = true; stopRequested = false;
+  runBtn.disabled = true; stopBtn.disabled = false; resetBtn.disabled = true;
+  warnEl.classList.remove('on');
+  for (const c of document.querySelectorAll('.chip, textarea, input')) c.disabled = true;
+
+  // A fresh objective starts from a clean slate, like a fresh run of the script.
+  tasks = [{ task_id: ++taskIdCounter, task_name: INITIAL_TASK }];
+  completed = []; logEl.textContent = ''; renderResults(); renderQueue();
+
+  let totalTokens = 0, totalSecs = 0, iter = 0, failed = false;
+  try {
+    while (tasks.length && iter < maxIter && !stopRequested) {
+      iter++;
+      highlight('queue');
+
+      // Step 1: pull the first incomplete task and execute it.
+      const task = tasks.shift();
+      renderQueue(task);
+      const context = contextAgent(OBJECTIVE, 5);
+      let prompt = `Perform one task based on the following objective: ${OBJECTIVE}.\n`;
+      if (context.length) prompt += 'Take into account these previously completed tasks:' + context.join('\n');
+      prompt += `\nYour task: ${task.task_name}\nResponse:`;
+      const exec = await callAgent('execution', task.task_name, prompt, maxTokens, iter, maxIter);
+      totalTokens += exec.tokens; totalSecs += exec.secs;
+      if (stopRequested) { tasks.unshift(task); break; }
+
+      // Step 2: store the result.
+      highlight('memory');
+      completed.push({ ...task, result: exec.answer });
+      renderResults(); renderQueue();
+
+      // Step 3: create new tasks based on the result.
+      const incomplete = tasks.map(t => t.task_name);
+      prompt = `
+You are to use the result from an execution agent to create new tasks with the following objective: ${OBJECTIVE}.
+The last completed task has the result: \n${exec.answer}
+This result was based on this task description: ${task.task_name}.\n`;
+      if (incomplete.length) prompt += `These are incomplete tasks: ${incomplete.join(', ')}\n`;
+      prompt += 'Based on the result, return a list of tasks to be completed in order to meet the objective. ';
+      if (incomplete.length) prompt += 'These new tasks must not overlap with incomplete tasks. ';
+      prompt += `
+Return one task per line in your response. The result must be a numbered list in the format:
+
+#. First task
+#. Second task
+
+The number of each entry must be followed by a period. If your list is empty, write "There are no tasks to add at this time."
+Unless your list is empty, do not include any headers before your numbered list or follow your numbered list with any other output.`;
+      const create = await callAgent('creation', 'What else needs to happen?', prompt, LIST_TOKENS, iter, maxIter, true);
+      totalTokens += create.tokens; totalSecs += create.secs;
+      if (stopRequested) break;
+      const parsed = parseNumberedList(create.answer, true);
+      // Skip exact repeats (of each other or of waiting tasks), which small models produce a lot.
+      const seen = new Set(tasks.map(t => t.task_name.toLowerCase()));
+      const newTasks = parsed.filter(t => !seen.has(t.task_name.toLowerCase()) && seen.add(t.task_name.toLowerCase()));
+      for (const t of newTasks) tasks.push({ task_id: ++taskIdCounter, task_name: t.task_name });
+      const dupes = parsed.length - newTasks.length;
+      const notes = [hashNote(parsed), dupes ? `${dupes} repeated task${dupes === 1 ? ' was' : 's were'} skipped.` : null].filter(Boolean).join(' ');
+      showParsed(create.entry, newTasks.length ? `Parsed into ${newTasks.length} new task${newTasks.length === 1 ? '' : 's'}, added to the end of the list:` : 'No new tasks could be parsed from this answer.', newTasks, notes || null);
+      renderQueue();
+
+      // Step 4: reprioritise the whole task list.
+      if (!tasks.length) continue;
+      const names = tasks.map(t => t.task_name);
+      prompt = `
+You are tasked with prioritizing the following tasks: ${'\n' + names.join('\n')}
+Consider the ultimate objective of your team: ${OBJECTIVE}.
+Tasks should be sorted from highest to lowest priority, where higher-priority tasks are those that act as pre-requisites or are more essential for meeting the objective.
+Do not remove any tasks. Return the ranked tasks as a numbered list in the format:
+
+#. First task
+#. Second task
+
+The entries must be consecutively numbered, starting with 1. The number of each entry must be followed by a period.
+Do not include any headers before your ranked list or follow your list with any other output.`;
+      const prio = await callAgent('prioritization', `Reorder ${names.length} task${names.length === 1 ? '' : 's'}`, prompt, LIST_TOKENS, iter, maxIter);
+      totalTokens += prio.tokens; totalSecs += prio.secs;
+      if (stopRequested) break;
+      const ranked = parseNumberedList(prio.answer, false);
+      if (ranked.length) {
+        let note = hashNote(ranked);
+        if (ranked.length < names.length) note = (note ? note + ' ' : '') + `⚠ The model was told not to remove any tasks, but returned ${ranked.length} of ${names.length}. BabyAGI uses its list anyway.`;
+        else if (ranked.length > names.length) note = (note ? note + ' ' : '') + `⚠ The model returned ${ranked.length} tasks where there were ${names.length}. BabyAGI uses its list anyway.`;
+        tasks = ranked;   // tasks_storage.replace(): the model's numbering becomes the new ids
+        showParsed(prio.entry, 'The task list is replaced by:', ranked, note);
+      } else {
+        showParsed(prio.entry, 'Nothing could be parsed, so the task list stays as it was.', []);
+      }
+      renderQueue();
+    }
+  } catch (err) {
+    failed = true;
+    const msg = String(err.message || err);
+    say('Something went wrong: ' + msg);
+    if (/webgpu|adapter|gpu/i.test(msg)) warn('<strong>WebGPU problem.</strong> This page needs a working WebGPU device. Try a recent Chrome or Edge on a laptop or desktop, and make sure hardware acceleration is on.');
+  }
+
+  highlight(null);
+  renderQueue();
+  busy = false;
+  runBtn.disabled = deviceVerdict === 'block'; stopBtn.disabled = true; resetBtn.disabled = false;
+  for (const c of document.querySelectorAll('.chip, textarea, input')) c.disabled = false;
+  if (failed) return;
+
+  const speed = totalSecs > 0 ? ` at ${(totalTokens / totalSecs).toFixed(0)} tokens/s` : '';
+  const summary = `${completed.length} task${completed.length === 1 ? '' : 's'} completed, ${totalTokens} tokens generated${speed}`;
+  if (stopRequested) say(`Stopped. ${summary}.`);
+  else if (!tasks.length) say(`Done: the task list is empty. ${summary}.`);
+  else say(`Stopped after ${maxIter} iteration${maxIter === 1 ? '' : 's'} with ${tasks.length} task${tasks.length === 1 ? '' : 's'} still waiting. ${summary}. The original would have kept going.`);
+}
+
+// ── Buttons ───────────────────────────────────────────────────────────────────
+runBtn.addEventListener('click', () => { if (!busy && deviceVerdict !== 'block') runBabyAGI(); });
+
+stopBtn.addEventListener('click', () => {
+  stopRequested = true; stopBtn.disabled = true;
+  say('Stopping after the current token…', { spinning: true, progress: 'indeterminate' });
+  send({ type: 'interrupt' });
+});
+
+resetBtn.addEventListener('click', () => {
+  if (busy) return;
+  tasks = []; completed = [];
+  logEl.textContent = ''; renderResults(); renderQueue();
+  resetBtn.disabled = true;
+  say(modelLoaded ? 'Model loaded and ready.' : 'Model not loaded yet. The first run downloads about 1.4 GB, once.');
+});
+
+copyBtn.addEventListener('click', async () => {
+  const md = `# BabyAGI\n\n**Objective:** ${$('objective').value.trim()}\n\n` +
+    completed.map((r, i) => `## ${i + 1}. ${r.task_name}\n\n${r.result}\n`).join('\n');
+  try { await navigator.clipboard.writeText(md); $('copied').textContent = 'Copied.'; }
+  catch { $('copied').textContent = 'Copying is not allowed here.'; }
+  setTimeout(() => { $('copied').textContent = ''; }, 2500);
+});
+
+// ── Device check ──────────────────────────────────────────────────────────────
+// A web page cannot ask how much memory a graphics card has, so this is an informed
+// guess from what the browser does reveal: the operating system, whether WebGPU gets a
+// real GPU or a software fallback, the GPU's name (via WebGL) and, in Chrome and Edge,
+// the amount of system RAM (rounded to a power of two for privacy).
+
+const SOFTWARE_GPU = /swiftshader|llvmpipe|softpipe|lavapipe|software|basic render/i;
+
+// Graphics cards that are commonly sold with less than 8 GB, matched on their name.
+// The number is the smallest memory size that model ships with.
+const SMALL_GPUS = [
+  [/geforce\s*mx\s*\d{3}|\bgt\s*(710|720|730|1030)\b|quadro\s*p(400|600|620)\b|\bt(400|500)\b/i, 2],
+  [/gtx\s*(7\d0|9[5-8]0|1050|1650)|rtx\s*(2050|3050\s*ti)|rtx\s*3050.*laptop|\b(p1000|t550|t600|t1000|a500|a1000)\b/i, 4],
+  [/gtx\s*(1060|1660)|rtx\s*2060(?!\s*super)|rtx\s*4050|rtx\s*3060.*laptop|rtx\s*a2000/i, 6],
+  [/\brx\s*(460|470|480|550|560|570|580|590|5300|5500|6300|6400|6500|6550|6600s)(m|s|xt)?\b|radeon\s*pro\s*(4\d0|5[5-8]\dx?|5300m|5500m|vega\s*(16|20))\b/i, 4],
+  [/\brx\s*5600m\b/i, 6],
+  [/\barc.*\ba3[5-8]0m?\b/i, 4]
+];
+const INTEGRATED_GPU = /intel.*(uhd|iris|hd graphics|\(r\) graphics|arc\(tm\) graphics|arc graphics)|radeon(\(tm\))?\s*(graphics|vega \d+ graphics|r[4-8] graphics|\d{3}m\b)|adreno|mali|powervr|videocore/i;
+const DISCRETE_GPU = /nvidia|geforce|quadro|\brtx\b|radeon|\barc(\(tm\))?\s*[ab]\d{3}/i;
+
+// Pure function: every fact in, one verdict out. Kept separate so it can be tested.
+function assessDevice({ os, hasWebGPU, isFallback, vendor = '', architecture = '', renderer = '', ramGB = null }) {
+  const name = renderer || [vendor, architecture].filter(Boolean).join(' ');
+  const gb = n => `${n} GB`;
+  const ramText = ramGB == null ? null : gb(ramGB);
+
+  const cpuOnly = isFallback || SOFTWARE_GPU.test(name) || SOFTWARE_GPU.test(vendor) || (!hasWebGPU && !renderer);
+  if (cpuOnly) {
+    return { gpu: renderer && SOFTWARE_GPU.test(renderer) ? `none (software rendering: ${renderer})` : 'none found (CPU only)',
+      mem: 'not applicable', verdict: 'block',
+      message: '<strong>Running the model is not possible on this device.</strong> No graphics card is available to the ' +
+        'browser, and a 1.7-billion-parameter model is far too slow on the CPU alone. You can still read how BabyAGI works below.' };
+  }
+  if (!hasWebGPU) {
+    const hint = os === 'Linux'
+      ? 'On Linux, Chrome still needs WebGPU switched on: enable <code>chrome://flags/#enable-unsafe-webgpu</code> and <code>chrome://flags/#enable-vulkan</code>, then restart the browser.'
+      : os === 'iOS' || os === 'iPadOS'
+        ? 'On iPhone and iPad, WebGPU needs iOS/iPadOS 26 or newer.'
+        : 'Try a recent Chrome or Edge; Safari supports WebGPU from version 26, Firefox from version 141 on Windows.';
+    return { gpu: name, mem: 'unknown', verdict: 'block',
+      message: `<strong>Running the model is not possible in this browser.</strong> A GPU was found, but the browser does not offer WebGPU, which the model needs. ${hint}` };
+  }
+
+  // Apple Silicon: CPU and GPU share one pool of memory.
+  if (/apple/i.test(vendor) || /apple\s*(m\d|gpu)/i.test(name)) {
+    if (ramGB != null && ramGB < 8) {
+      return { gpu: name || 'Apple GPU', mem: `shared with the system: ${gb(ramGB)}`, verdict: 'warn',
+        message: `<strong>This device may struggle.</strong> The GPU shares ${gb(ramGB)} of memory with the rest of the system; about 8 GB is needed to run properly. It may be slow, or the tab may crash.` };
+    }
+    const known = ramText ? `shared with the system: ${ramText}` : os === 'macOS' ? 'shared with the system (every Apple Silicon Mac has at least 8 GB)' : 'shared with the system (size not reported)';
+    if (!ramText && os !== 'macOS') {
+      return { gpu: name || 'Apple GPU', mem: known, verdict: 'warn',
+        message: '<strong>This device may struggle.</strong> The browser does not report how much memory is available, and phones and tablets often have less than the 8 GB needed.' };
+    }
+    return { gpu: name || 'Apple GPU', mem: known, verdict: 'ok',
+      message: '<strong>Your device should run the model.</strong> Apple Silicon shares its memory between CPU and GPU, which suits a model like this well.' };
+  }
+
+  const small = SMALL_GPUS.find(([re]) => re.test(name));
+  if (small) {
+    const [, minGB] = small;
+    return { gpu: name, mem: `about ${gb(minGB)}${minGB >= 4 ? ' (some versions have more)' : ''}`, verdict: 'warn',
+      message: `<strong>This GPU probably has less memory than recommended.</strong> Cards like this usually come with ${gb(minGB)}; about 8 GB is needed to run properly. You can try, but expect it to be slow or to fail while loading.` };
+  }
+
+  const vendorIsIntegrated = /intel/i.test(vendor) && !/xe-hpg|alchemist|battlemage/i.test(architecture) || /qualcomm|arm|imagination/i.test(vendor);
+  if (INTEGRATED_GPU.test(name) || (!DISCRETE_GPU.test(name) && vendorIsIntegrated)) {
+    // Integrated GPUs may use up to about half of the system RAM.
+    const share = ramGB == null ? 'shared with the system (size not reported)' : `shared with the system: about ${gb(Math.max(1, ramGB / 2))} of ${gb(ramGB)} RAM`;
+    if (ramGB >= 16) {
+      return { gpu: name, mem: share, verdict: 'ok',
+        message: '<strong>Your device should run the model.</strong> This is a built-in (integrated) GPU that borrows part of the system memory; with this much RAM there is enough, though it is slower than a dedicated graphics card.' };
+    }
+    return { gpu: name, mem: share, verdict: 'warn',
+      message: '<strong>This is a built-in (integrated) GPU.</strong> It borrows part of the system memory, usually around half, so on most laptops it has about 4 GB to work with where 8 GB is recommended. It often works, but slowly; laptops with 16 GB of RAM or more do best.' };
+  }
+
+  if (DISCRETE_GPU.test(name) || /nvidia|amd/i.test(vendor)) {
+    return { gpu: name, mem: 'dedicated; this model usually has 8 GB or more', verdict: 'ok',
+      message: '<strong>Your device should run the model.</strong> A dedicated graphics card was found.' };
+  }
+
+  return { gpu: name || 'unknown GPU', mem: 'unknown', verdict: 'warn',
+    message: '<strong>Could not tell how capable this GPU is.</strong> The model needs a GPU with about 8 GB of memory; with 4 GB it may be slow or fail while loading. You can try.' };
+}
+
+function detectOS() {
+  const ua = navigator.userAgent, platform = navigator.userAgentData?.platform || '';
+  if (/windows/i.test(platform) || /Windows/.test(ua)) return 'Windows';
+  if (/android/i.test(platform) || /Android/.test(ua)) return 'Android';
+  if (/chrome ?os/i.test(platform) || /CrOS/.test(ua)) return 'ChromeOS';
+  if (/iPhone|iPod/.test(ua)) return 'iOS';
+  if (/iPad/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) return 'iPadOS';
+  if (/mac/i.test(platform) || /Mac OS X|Macintosh/.test(ua)) return 'macOS';
+  if (/linux/i.test(platform) || /Linux/.test(ua)) return 'Linux';
+  return 'unknown';
+}
+
+// The GPU's name, as WebGL reports it. Ask for the high-performance GPU, like the
+// model runtime does, so a laptop with two GPUs reports the one that will be used.
+function webglRenderer() {
+  try {
+    const gl = document.createElement('canvas').getContext('webgl', { powerPreference: 'high-performance' });
+    if (!gl) return '';
+    const ext = gl.getExtension('WEBGL_debug_renderer_info');
+    let r = ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
+    gl.getExtension('WEBGL_lose_context')?.loseContext();
+    // Chrome wraps the name: "ANGLE (NVIDIA, NVIDIA GeForce RTX 3060 Laptop GPU (0x2560) Direct3D11 ...)".
+    const m = /^ANGLE \((?:[^,]+), (.+?)(?: \(0x[0-9a-f]+\))?(?:,| Direct3D| OpenGL| Vulkan|$)/i.exec(r || '');
+    if (m) r = m[1].replace(/^ANGLE Metal Renderer: /, '');
+    return String(r || '').replace(/, or similar$/, '').trim();
+  } catch { return ''; }
+}
+
+async function checkDevice() {
+  const os = detectOS();
+  let hasWebGPU = false, isFallback = false, vendor = '', architecture = '';
+  try {
+    const adapter = navigator.gpu && await navigator.gpu.requestAdapter({ powerPreference: 'high-performance' });
+    if (adapter) {
+      hasWebGPU = true;
+      const info = adapter.info || (adapter.requestAdapterInfo ? await adapter.requestAdapterInfo() : {});
+      vendor = info.vendor || ''; architecture = info.architecture || '';
+      isFallback = !!(info.isFallbackAdapter ?? adapter.isFallbackAdapter);
+    }
+  } catch {}
+  let renderer = webglRenderer();
+  // If WebGL described a different GPU than WebGPU picked (it happens on dual-GPU
+  // laptops), trust WebGPU's vendor rather than the other card's name.
+  if (renderer && vendor && !SOFTWARE_GPU.test(renderer) && !new RegExp(vendor.replace(/[^a-z0-9]/gi, ''), 'i').test(renderer)
+      && !(vendor === 'apple' && /apple/i.test(renderer))) renderer = '';
+  const ramGB = typeof navigator.deviceMemory === 'number' ? navigator.deviceMemory : null;
+  return { os, ...assessDevice({ os, hasWebGPU, isFallback, vendor, architecture, renderer, ramGB }) };
+}
+
+let deviceVerdict = 'checking';
+runBtn.disabled = true;
+checkDevice().then(d => {
+  deviceVerdict = d.verdict;
+  $('dev-os').textContent = d.os;
+  $('dev-gpu').textContent = d.gpu;
+  $('dev-mem').textContent = d.mem;
+  const v = $('dev-verdict');
+  v.className = 'verdict ' + d.verdict;
+  v.innerHTML = d.message;
+  if (d.verdict === 'block') {
+    runBtn.classList.remove('primary'); runBtn.classList.add('danger');
+    runBtn.textContent = 'Not possible on this device';
+    say('The model cannot run on this device. See the device check above.');
+  } else {
+    runBtn.disabled = false;
+    if (d.verdict === 'warn') { runBtn.classList.remove('primary'); runBtn.classList.add('caution'); runBtn.textContent = 'Run BabyAGI anyway'; }
+  }
+});
+</script>
+
+</body>
+</html>

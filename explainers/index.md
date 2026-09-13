@@ -56,3 +56,14 @@ no code, just open and explore.
   feature map. Hovering any output pixel highlights the patch it came from and
   spells out the multiply-and-add behind it. The digits are real MNIST test
   images exported with torchvision, so the page needs no install and no server.
+
+- **[History of LLMs: BabyAGI, the first steps towards reasoning and agentic AI](/explainers/baby_agi.html)** — A
+  rebuild of [BabyAGI](https://github.com/yoheinakajima/babyagi_archive), the 2023
+  script that started the first wave of AI agents. Type an objective and watch three
+  agents work in a loop: one executes a task, one invents new tasks from the result,
+  and one reorders the to-do list. The agent log shows the exact prompt behind every
+  step and how the code parses the answer. Instead of GPT-3.5, each step runs on
+  Qwen3-1.7B through [Transformers.js](https://huggingface.co/docs/transformers.js)
+  and WebGPU on your own machine. The page first checks your hardware: it needs a
+  GPU with about 8 GB of memory, and cannot run on a computer without one. The
+  first run downloads about 1.4 GB of weights, which the browser then caches.
