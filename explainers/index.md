@@ -67,3 +67,19 @@ no code, just open and explore.
   and WebGPU on your own machine. The page first checks your hardware: it needs a
   GPU with about 8 GB of memory, and cannot run on a computer without one. The
   first run downloads about 1.4 GB of weights, which the browser then caches.
+
+- **[Explainable AI: a primer](/explainers/xai-explainer.html)** — Lecture notes
+  in five tabs on why and how we explain AI models: the foundations of XAI,
+  Shapley values and SHAP, saliency methods for computer vision such as Grad-CAM
+  and Integrated Gradients, a Grad-CAM implementation in PyTorch, and what does
+  (and doesn't) work for explaining LLMs, from SHAP on text to mechanistic
+  interpretability.
+
+- **[Explainable AI for computer vision](/explainers/xai_computer_vision.html)** — Upload
+  a photo, or pick one of the sample images, and let ResNet-18 classify it into
+  the 1000 ImageNet classes. Then compare three explanations of that prediction:
+  Grad-CAM, SHAP and Integrated Gradients, each shown as a heatmap on top of the
+  image. Everything runs in your browser with
+  [TensorFlow.js](https://www.tensorflow.org/js), so your images are never
+  uploaded. The first visit downloads about 47 MB of model weights from Hugging
+  Face, which the browser then caches.
