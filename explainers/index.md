@@ -83,3 +83,13 @@ no code, just open and explore.
   [TensorFlow.js](https://www.tensorflow.org/js), so your images are never
   uploaded. The first visit downloads about 47 MB of model weights from Hugging
   Face, which the browser then caches.
+
+- **[SHAP for sentiment analysis](/explainers/shap_sentiment.html)** — Type an
+  English sentence and let DistilBERT classify it as positive or negative. SHAP
+  then shows how much each word pushed the prediction towards positive (green) or
+  negative (red), both in the sentence itself and as a bar chart. The explanation
+  works by hiding groups of words with a `[MASK]` token and measuring how the
+  prediction changes, just like the Python `shap` library. The model runs in your
+  browser with ONNX Runtime Web, so your text is never uploaded. The first visit
+  downloads about 134 MB of weights, which the browser then caches; without a
+  GPU, long sentences can take a few minutes.

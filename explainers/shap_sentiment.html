@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SHAP Sentiment Visualiser</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.30.0/dist/ort.webgpu.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+    }
+
+    h1 {
+      font-size: 1.7rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.3rem;
+      text-align: center;
+      background: linear-gradient(135deg, #7c3aed, #2563eb);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle {
+      color: #64748b;
+      font-size: 0.88rem;
+      margin-bottom: 2rem;
+      text-align: center;
+    }
+
+    .card {
+      background: #1e2130;
+      border: 1px solid #2d3148;
+      border-radius: 14px;
+      padding: 1.5rem;
+      width: 100%;
+      max-width: 760px;
+    }
+
+    .notice {
+      background: #131624;
+      border: 1px solid #2d3148;
+      border-radius: 10px;
+      padding: 0.9rem 1.1rem;
+      margin-bottom: 1.2rem;
+      font-size: 0.84rem;
+      color: #94a3b8;
+      line-height: 1.6;
+    }
+
+    #model-status { margin-top: 0.4rem; font-size: 0.8rem; color: #64748b; }
+    #model-status.ready { color: #6ee7b7; }
+    #model-status.failed { color: #f87171; }
+    .progress { height: 4px; margin-top: 0.4rem; background: #2d3148; border-radius: 2px; overflow: hidden; }
+    .progress > div { height: 100%; width: 0; background: linear-gradient(135deg, #7c3aed, #2563eb); transition: width 0.2s; }
+
+    textarea {
+      width: 100%;
+      resize: vertical;
+      min-height: 90px;
+      background: #0f1117;
+      border: 1px solid #2d3148;
+      border-radius: 8px;
+      color: #e2e8f0;
+      font-size: 1rem;
+      padding: 0.75rem 1rem;
+      outline: none;
+      transition: border-color 0.2s;
+      font-family: inherit;
+    }
+
+    textarea:focus { border-color: #7c3aed; }
+
+    .row { display: flex; gap: 0.75rem; align-items: center; margin-top: 0.75rem; flex-wrap: wrap; }
+
+    button {
+      padding: 0.6rem 1.4rem;
+      background: linear-gradient(135deg, #7c3aed, #2563eb);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.92rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    button:hover { opacity: 0.85; }
+    button:disabled { opacity: 0.4; cursor: default; }
+
+    .spinner {
+      display: none;
+      width: 22px; height: 22px;
+      border: 3px solid #2d3148;
+      border-top-color: #7c3aed;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #progress-msg { font-size: 0.82rem; color: #94a3b8; }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.3rem 0.85rem;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .badge.positive { background: #052e16; color: #4ade80; border: 1px solid #166534; }
+    .badge.negative { background: #2d0a0a; color: #f87171; border: 1px solid #7f1d1d; }
+
+    #results { margin-top: 1.5rem; display: none; }
+
+    .result-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.2rem;
+    }
+
+    .confidence {
+      color: #94a3b8;
+      font-size: 0.88rem;
+    }
+
+    /* Inline token highlights */
+    #token-display {
+      font-size: 1.05rem;
+      line-height: 2.2;
+      margin-bottom: 1.5rem;
+      padding: 0.75rem 1rem;
+      background: #0f1117;
+      border-radius: 8px;
+      border: 1px solid #2d3148;
+    }
+
+    .token-chip {
+      display: inline-block;
+      margin: 2px 3px;
+      padding: 2px 6px;
+      border-radius: 5px;
+      font-weight: 600;
+      cursor: default;
+      transition: transform 0.15s;
+      position: relative;
+    }
+    .token-chip:hover { transform: scale(1.08); }
+
+    /* Tooltip */
+    .token-chip::after {
+      content: attr(data-tip);
+      position: absolute;
+      bottom: calc(100% + 6px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1e2130;
+      border: 1px solid #2d3148;
+      color: #e2e8f0;
+      font-size: 0.75rem;
+      padding: 3px 7px;
+      border-radius: 5px;
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+    .token-chip:hover::after { opacity: 1; }
+
+    .section-label {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #475569;
+      margin-bottom: 0.5rem;
+    }
+
+    #chart-container {
+      position: relative;
+    }
+
+    #error-msg {
+      color: #f87171;
+      font-size: 0.88rem;
+      display: none;
+    }
+
+    @media (max-width: 640px) {
+      .card { padding: 1rem; }
+    }
+  </style>
+</head>
+<body>
+  <h1>SHAP Sentiment Visualiser</h1>
+  <p class="subtitle">Token-level feature attribution via SHAP + DistilBERT</p>
+
+  <div class="card">
+    <div class="notice">
+      Classifies English sentences as positive or negative with
+      <strong style="color:#6ee7b7;">DistilBERT</strong> (fine-tuned on SST-2) and explains the prediction with
+      <strong style="color:#c4b5fd;">SHAP</strong>. Everything runs locally in your browser: text is never uploaded.
+      <div id="model-status">Loading DistilBERT from Hugging Face…</div>
+      <div class="progress" id="model-progress"><div></div></div>
+    </div>
+
+    <textarea id="text-input" placeholder="Type a sentence…">What a great movie!</textarea>
+    <div class="row">
+      <button id="analyze-btn" onclick="analyze()" disabled>Analyse</button>
+      <div class="spinner" id="spinner"></div>
+      <span id="progress-msg"></span>
+      <span id="error-msg"></span>
+    </div>
+
+    <div id="results">
+      <div class="result-header">
+        <div id="badge" class="badge"></div>
+        <span class="confidence" id="confidence-text"></span>
+      </div>
+
+      <p class="section-label">Token contributions (hover for value)</p>
+      <div id="token-display"></div>
+
+      <p class="section-label">SHAP values — contribution to POSITIVE class</p>
+      <div id="chart-container">
+        <canvas id="shap-chart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Tokenizer + SHAP PartitionExplainer (no DOM access) ────────────── -->
+  <script id="shap-core">
+    const ShapText = (() => {
+      // ── BERT uncased WordPiece tokenizer with character offsets ──────────
+      // Mirrors Hugging Face's BertNormalizer (clean text, Chinese chars, strip accents, lowercase),
+      // BertPreTokenizer (split on whitespace and punctuation) and WordPiece.
+      const SPECIAL_TOKENS = ['[PAD]', '[UNK]', '[CLS]', '[SEP]', '[MASK]'];
+      const SPECIAL_RE = /\[PAD\]|\[UNK\]|\[CLS\]|\[SEP\]|\[MASK\]/g;
+
+      function createTokenizer(vocabText) {
+        const vocab = new Map();
+        vocabText.split('\n').forEach((tok, i) => { if (tok !== '' || i === 0) vocab.set(tok.replace(/\r$/, ''), i); });
+        const id = t => vocab.get(t);
+        const UNK = id('[UNK]'), CLS = id('[CLS]'), SEP = id('[SEP]'), MASK = id('[MASK]'), PAD = id('[PAD]');
+
+        const isWhitespace = c => c === ' ' || c === '\t' || c === '\n' || c === '\r' || /^\s$/u.test(c);
+        const isControl = c => c !== '\t' && c !== '\n' && c !== '\r' && /^\p{C}$/u.test(c);
+        const isPunct = c => {
+          const cp = c.codePointAt(0);
+          return (cp >= 33 && cp <= 47) || (cp >= 58 && cp <= 64) || (cp >= 91 && cp <= 96) ||
+                 (cp >= 123 && cp <= 126) || /^\p{P}$/u.test(c);
+        };
+        const isChinese = cp =>
+          (cp >= 0x4E00 && cp <= 0x9FFF) || (cp >= 0x3400 && cp <= 0x4DBF) || (cp >= 0x20000 && cp <= 0x2A6DF) ||
+          (cp >= 0x2A700 && cp <= 0x2B73F) || (cp >= 0x2B740 && cp <= 0x2B81F) || (cp >= 0x2B820 && cp <= 0x2CEAF) ||
+          (cp >= 0xF900 && cp <= 0xFAFF) || (cp >= 0x2F800 && cp <= 0x2FA1F);
+
+        // Tokenize text without special tokens. Offsets are code-point indices into `chars`.
+        function wordpieces(chars, from, to, out) {
+          // normalise, remembering the original position of every normalised character
+          const norm = [];
+          for (let i = from; i < to; i++) {
+            const c = chars[i];
+            if (c === '\0' || c === '�' || isControl(c)) continue;
+            if (isWhitespace(c)) { norm.push([' ', i]); continue; }
+            if (isChinese(c.codePointAt(0))) { norm.push([' ', i], [c, i], [' ', i]); continue; }
+            for (const n of Array.from(c.normalize('NFD').replace(/\p{Mn}/gu, '').toLowerCase())) norm.push([n, i]);
+          }
+          // split into words on whitespace; punctuation characters become their own word
+          const words = [];
+          let word = [];
+          for (const item of norm) {
+            if (item[0] === ' ') { if (word.length) words.push(word); word = []; }
+            else if (isPunct(item[0])) { if (word.length) words.push(word); words.push([item]); word = []; }
+            else word.push(item);
+          }
+          if (word.length) words.push(word);
+          // greedy longest-match-first WordPiece
+          for (const w of words) {
+            const wordStart = w[0][1], wordEnd = w[w.length - 1][1] + 1;
+            if (w.length > 100) { out.push({ id: UNK, start: wordStart, end: wordEnd }); continue; }
+            const pieces = [];
+            let start = 0, bad = false;
+            while (start < w.length) {
+              let end = w.length, found = null;
+              while (start < end) {
+                const sub = (start > 0 ? '##' : '') + w.slice(start, end).map(x => x[0]).join('');
+                if (vocab.has(sub)) { found = vocab.get(sub); break; }
+                end--;
+              }
+              if (found === null) { bad = true; break; }
+              pieces.push({ id: found, start: w[start][1], end: w[end - 1][1] + 1 });
+              start = end;
+            }
+            if (bad) out.push({ id: UNK, start: wordStart, end: wordEnd });
+            else out.push(...pieces);
+          }
+        }
+
+        // Full encoding like tokenizer(text, return_offsets_mapping=True): [CLS] … [SEP]
+        function encode(text) {
+          const chars = Array.from(text);
+          const joined = chars.join('');
+          const toks = [{ id: CLS, start: 0, end: 0 }];
+          // special tokens typed in the text are matched before normalisation (like HF added tokens)
+          let pos = 0, cpPos = 0;
+          for (const m of joined.matchAll(SPECIAL_RE)) {
+            const cpStart = cpPos + Array.from(joined.slice(pos, m.index)).length;
+            wordpieces(chars, cpPos, cpStart, toks);
+            toks.push({ id: id(m[0]), start: cpStart, end: cpStart + m[0].length });
+            pos = m.index + m[0].length;
+            cpPos = cpStart + m[0].length;
+          }
+          wordpieces(chars, cpPos, chars.length, toks);
+          toks.push({ id: SEP, start: 0, end: 0 });
+          return { chars, ids: toks.map(t => t.id), offsets: toks.map(t => [t.start, t.end]) };
+        }
+
+        return { encode, PAD, SEP, MASK, sepToken: '[SEP]', maskToken: '[MASK]' };
+      }
+
+      // ── shap.maskers.Text ────────────────────────────────────────────────
+      // The substring belonging to each token (shap's token_segments); [CLS]/[SEP] become "".
+      function tokenSegments(tok, text) {
+        const { chars, ids, offsets } = tok.encode(text);
+        const slice = (a, b) => chars.slice(a, b).join('');
+        const parts = [];
+        for (let i = 0; i < offsets.length - 1; i++) {
+          parts.push(slice(offsets[i][0], Math.max(offsets[i][1], offsets[i + 1][0])));
+        }
+        const last = offsets[offsets.length - 1];
+        parts.push(slice(last[0], last[1]));
+        return { segments: parts, ids };
+      }
+
+      // Masked string for a boolean mask (true = keep token), as in Text.__call__ with output_type="string"
+      function maskedString(tok, segments, mask) {
+        const M = segments.length;
+        let out = '';
+        for (let i = 0; i < M; i++) {
+          const keep = mask[i] || i === 0 || i === M - 1;      // keep_prefix = keep_suffix = 1
+          if (keep || segments[i] === tok.sepToken) out += segments[i];
+          else out += ' ' + tok.maskToken;                      // collapse_mask_token = False
+        }
+        return out.replace(/\s+/g, ' ').trim();
+      }
+
+      // ── Hierarchical token clustering (shap.maskers._text.partition_tree) ──
+      const OPENERS = { '(': ')' };
+      const CLOSERS = { ')': '(' };
+      const CONNECTORS = ['but', 'and', 'or'];
+
+      function mergeScore(g1, g2, specialTokens) {
+        let score = 0;
+        const first1 = g1[0], last1 = g1[g1.length - 1], first2 = g2[0], last2 = g2[g2.length - 1];
+        if (specialTokens.length > 0 && specialTokens.includes(last1.s) && specialTokens.includes(first2.s)) score -= Infinity;
+        if (first2.s.startsWith('##')) score += 20;
+        if (first2.s === "'" && (g2.length === 1 || (g2.length === 2 && ['t', 's'].includes(g2[1].s)))) score += 15;
+        if (last1.s === "'" && ['t', 's'].includes(first2.s)) score += 15;
+        const startCtrl = first1.s.startsWith('[') && first1.s.endsWith(']');
+        const endCtrl = last2.s.startsWith('[') && last2.s.endsWith(']');
+        if ((startCtrl && !endCtrl) || (endCtrl && !startCtrl)) score -= 1000;
+        if (Object.hasOwn(OPENERS, first2.s) && !first2.balanced) score -= 100;
+        if (Object.hasOwn(CLOSERS, last1.s) && !last1.balanced) score -= 100;
+        if (Object.hasOwn(OPENERS, first1.s)) score -= 2;   // shap's second condition compares a Token to strings, so it is always true
+        if (CONNECTORS.includes(last1.s) || CONNECTORS.includes(first2.s)) score -= 2;
+        if (last1.s === ',') score -= 10;
+        if (first2.s === ',') score -= g2.length > 1 ? 10 : 1;
+        if (['.', '?', '!'].includes(last1.s)) score -= 20;
+        if (['.', '?', '!'].includes(first2.s)) score -= g2.length > 1 ? 20 : 1;
+        score -= g1.length + g2.length;
+        return score;
+      }
+
+      // Returns rows [left, right, size] like shap's clustering matrix (distance column not needed)
+      function partitionTree(decodedTokens, specialTokens) {
+        const M = decodedTokens.length;
+        let groups = decodedTokens.map((s, i) => {
+          const g = [{ s, balanced: !(Object.hasOwn(OPENERS, s) || Object.hasOwn(CLOSERS, s)) }];
+          g.index = i;
+          return g;
+        });
+        const rows = [];
+        let newIndex = M;
+        for (let step = 0; step < M - 1; step++) {
+          let best = 0, bestScore = -Infinity, first = true;
+          for (let i = 0; i < groups.length - 1; i++) {
+            const sc = mergeScore(groups[i], groups[i + 1], specialTokens);
+            if (first || sc > bestScore) { best = i; bestScore = sc; first = false; }
+          }
+          const L = groups[best], R = groups[best + 1];
+          const size = (L.index >= M ? rows[L.index - M][2] : 1) + (R.index >= M ? rows[R.index - M][2] : 1);
+          rows.push([L.index, R.index, size]);
+          const merged = L.concat(R);
+          merged.index = newIndex++;
+          if (Object.hasOwn(OPENERS, merged[0].s) && R[R.length - 1].s === OPENERS[merged[0].s]) {
+            merged[0].balanced = true;
+            R[R.length - 1].balanced = true;
+          }
+          groups.splice(best, 2, merged);
+        }
+        return rows;
+      }
+
+      function clustering(tok, segments) {
+        const tokens = [];
+        segments.forEach((v, i) => {
+          if (i > 0 && !/^.*[^\p{L}\p{N}_]$/u.test(segments[i - 1]) && /^[A-Za-z]/.test(v) && tokens[i - 1] !== '') {
+            tokens.push('##' + v.trim());
+          } else {
+            tokens.push(v.trim());
+          }
+        });
+        return partitionTree(tokens, [tok.sepToken]);
+      }
+
+      // Leaf sets for every node of the tree (shap's make_masks)
+      function makeMasks(rows, M) {
+        const leaves = [];
+        for (let i = 0; i < M; i++) leaves.push([i]);
+        rows.forEach(([l, r]) => leaves.push(leaves[l].concat(leaves[r])));
+        return leaves;
+      }
+
+      // ── Binary heap ordered like Python's PriorityQueue on (priority, random) ──
+      class Heap {
+        constructor() { this.a = []; }
+        get size() { return this.a.length; }
+        less(x, y) { return x.p < y.p || (x.p === y.p && x.r < y.r); }
+        push(item) {
+          const a = this.a;
+          a.push(item);
+          let i = a.length - 1;
+          while (i > 0) {
+            const parent = (i - 1) >> 1;
+            if (!this.less(a[i], a[parent])) break;
+            [a[i], a[parent]] = [a[parent], a[i]];
+            i = parent;
+          }
+        }
+        pop() {
+          const a = this.a, top = a[0], last = a.pop();
+          if (a.length > 0) {
+            a[0] = last;
+            let i = 0;
+            for (;;) {
+              const l = 2 * i + 1, r = l + 1;
+              let m = i;
+              if (l < a.length && this.less(a[l], a[m])) m = l;
+              if (r < a.length && this.less(a[r], a[m])) m = r;
+              if (m === i) break;
+              [a[i], a[m]] = [a[m], a[i]];
+              i = m;
+            }
+          }
+          return top;
+        }
+      }
+
+      const randn = () => Math.sqrt(-2 * Math.log(1 - Math.random())) * Math.cos(2 * Math.PI * Math.random());
+      const maxAbsDiff = (a, b) => a.reduce((m, v, i) => Math.max(m, Math.abs(v - b[i])), 0);
+
+      // ── PartitionExplainer.explain_row + owen() with max_evals=500, batch_size=5, fixed_context=None ──
+      // predict(listOfTokenIdArrays) → Promise<array of per-class probabilities>
+      async function explain(tok, text, predict, { maxEvals = 500, batchSize = 5, onProgress = () => {} } = {}) {
+        const { segments, ids } = tokenSegments(tok, text);
+        const M = segments.length;
+
+        // Model evaluation of a set of masks; identical masked strings are only run once
+        const cache = new Map();
+        let modelCalls = 0;
+        async function fm(masks) {
+          const strings = masks.map(m => maskedString(tok, segments, m));
+          const todo = [...new Set(strings.filter(s => !cache.has(s)))];
+          if (todo.length) {
+            const outs = await predict(todo.map(s => tok.encode(s).ids));
+            todo.forEach((s, i) => cache.set(s, Array.from(outs[i])));
+            modelCalls += todo.length;
+          }
+          return strings.map(s => cache.get(s));
+        }
+
+        const m00 = new Uint8Array(M);
+        const [f00all] = await fm([m00]);
+        const [f11all] = await fm([new Uint8Array(M).fill(1)]);
+        const rows = clustering(tok, segments);
+        const leafSets = makeMasks(rows, M);
+        const nOut = f00all.length;
+        const nodes = 2 * M - 1;
+        const dvalues = Array.from({ length: nodes }, () => new Float64Array(nOut));
+        const addScaled = (ind, a, b, w) => { for (let k = 0; k < nOut; k++) dvalues[ind][k] += (a[k] - b[k]) * w; };
+        const withLeaves = (mask, node) => { const m = mask.slice(); for (const j of leafSets[node]) m[j] = 1; return m; };
+
+        const budget = maxEvals - 2;
+        const q = new Heap();
+        q.push({ p: 0, r: 0, m00, f00: f00all, f11: f11all, ind: nodes - 1, w: 1 });
+        let evalCount = 0;
+        while (q.size > 0) {
+          if (evalCount >= budget) {
+            while (q.size > 0) { const it = q.pop(); addScaled(it.ind, it.f11, it.f00, it.w); }
+            break;
+          }
+          const batchArgs = [], batchMasks = [];
+          while (q.size > 0 && batchMasks.length < batchSize && evalCount + batchMasks.length < budget) {
+            const it = q.pop();
+            if (it.ind < M) { addScaled(it.ind, it.f11, it.f00, it.w); continue; }   // leaf
+            const [lind, rind] = rows[it.ind - M];
+            const m10 = withLeaves(it.m00, lind), m01 = withLeaves(it.m00, rind);
+            batchArgs.push({ ...it, m10, m01, lind, rind });
+            batchMasks.push(m10, m01);
+          }
+          let fout = [];
+          if (batchArgs.length > 0) {
+            fout = await fm(batchMasks);
+            evalCount += batchMasks.length;
+            onProgress(Math.min(evalCount, budget), budget);
+          }
+          batchArgs.forEach((a, i) => {
+            const f10 = fout[2 * i], f01 = fout[2 * i + 1];
+            const w = a.w / 2;
+            q.push({ p: -maxAbsDiff(f10, a.f00) * w, r: randn(), m00: a.m00, f00: a.f00, f11: f10, ind: a.lind, w });
+            q.push({ p: -maxAbsDiff(f01, a.f00) * w, r: randn(), m00: a.m00, f00: a.f00, f11: f01, ind: a.rind, w });
+            q.push({ p: -maxAbsDiff(a.f11, f01) * w, r: randn(), m00: a.m01, f00: f01, f11: a.f11, ind: a.lind, w });
+            q.push({ p: -maxAbsDiff(a.f11, f10) * w, r: randn(), m00: a.m10, f00: f10, f11: a.f11, ind: a.rind, w });
+          });
+        }
+
+        // lower_credit: push the credit of every group down to its tokens, proportional to group size
+        const values = dvalues.map(v => Float64Array.from(v));
+        const size = i => (i < M ? 1 : rows[i - M][2]);
+        (function lowerCredit(i, value) {
+          if (i < M) { for (let k = 0; k < nOut; k++) values[i][k] += value[k]; return; }
+          const [li, ri, groupSize] = rows[i - M];
+          for (let k = 0; k < nOut; k++) values[i][k] += value[k];
+          lowerCredit(li, values[i].map(v => v * size(li) / groupSize));
+          lowerCredit(ri, values[i].map(v => v * size(ri) / groupSize));
+        })(nodes - 1, new Float64Array(nOut));
+
+        return {
+          tokens: segments,
+          ids,
+          values: values.slice(0, M).map(v => Array.from(v)),   // (M, classes)
+          baseValues: f00all,
+          fullOutput: f11all,
+          evalCount,
+          modelCalls,
+        };
+      }
+
+      return { createTokenizer, tokenSegments, maskedString, clustering, explain };
+    })();
+  </script>
+
+  <!-- ── Page logic ─────────────────────────────────────────────────────── -->
+  <script>
+    const HF_BASE = 'https://huggingface.co/Xenova/distilbert-base-uncased-finetuned-sst-2-english/resolve/0b6928efcb76139cae2c6881d49cda67fe119f42';
+    const MODEL_URL = `${HF_BASE}/onnx/model_fp16.onnx`;
+    const VOCAB_URL = `${HF_BASE}/vocab.txt`;
+    const LABELS = ['NEGATIVE', 'POSITIVE'];
+    const MAX_TOKENS = 512;
+    const CACHE_NAME = 'xai-distilbert-sst2-fp16-v1';
+
+    let chartInstance = null;
+    let tokenizer = null;
+    let session = null;
+
+    const $ = id => document.getElementById(id);
+
+    // ── Model loading (cached in the browser after the first visit) ───────
+    async function fetchCached(url, onProgress = () => {}) {
+      let cache = null;
+      try {
+        cache = await caches.open(CACHE_NAME);
+        const hit = await cache.match(url);
+        if (hit) return await hit.arrayBuffer();
+      } catch (e) { cache = null; }
+
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error(`download failed (HTTP ${resp.status})`);
+      const total = Number(resp.headers.get('content-length')) || 0;
+      const chunks = [];
+      let loaded = 0;
+      const reader = resp.body.getReader();
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+        loaded += value.length;
+        onProgress(loaded, total);
+      }
+      const buf = new Uint8Array(loaded);
+      let pos = 0;
+      for (const c of chunks) { buf.set(c, pos); pos += c.length; }
+      try { if (cache) await cache.put(url, new Response(buf)); } catch (e) { /* storage full or unavailable */ }
+      return buf.buffer;
+    }
+
+    async function initModel() {
+      const status = $('model-status');
+      const bar = document.querySelector('#model-progress > div');
+      try {
+        ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.30.0/dist/';
+        const vocab = new TextDecoder().decode(await fetchCached(VOCAB_URL));
+        tokenizer = ShapText.createTokenizer(vocab);
+        const modelBuf = await fetchCached(MODEL_URL, (loaded, total) => {
+          status.textContent = `Downloading DistilBERT from Hugging Face… ${(loaded / 1e6).toFixed(0)} / ${(total / 1e6).toFixed(0)} MB`;
+          if (total) bar.style.width = `${(100 * loaded / total).toFixed(1)}%`;
+        });
+        bar.style.width = '100%';
+        status.textContent = 'Preparing model…';
+        // Prefer the GPU (WebGPU); fall back to the CPU (WebAssembly) when it is not available
+        const bytes = new Uint8Array(modelBuf);
+        let device = 'GPU';
+        try {
+          if (!navigator.gpu) throw new Error('WebGPU not available');
+          session = await ort.InferenceSession.create(bytes, { executionProviders: ['webgpu'] });
+          await predict([tokenizer.encode('warm up').ids]);
+        } catch (e) {
+          device = 'CPU';
+          session = await ort.InferenceSession.create(bytes, { executionProviders: ['wasm'] });
+          await predict([tokenizer.encode('warm up').ids]);
+        }
+        status.textContent = device === 'GPU'
+          ? 'DistilBERT ready · running locally on your GPU'
+          : 'DistilBERT ready · running locally on your CPU (no WebGPU in this browser, so long sentences can take a few minutes)';
+        status.classList.add('ready');
+        $('model-progress').style.display = 'none';
+        $('analyze-btn').disabled = false;
+      } catch (e) {
+        status.textContent = `Could not load the model: ${e.message}. Check your internet connection and reload the page.`;
+        status.classList.add('failed');
+      }
+    }
+
+    // Batch of token id arrays → softmax probabilities [NEGATIVE, POSITIVE] per input
+    async function predict(idLists) {
+      const n = idLists.length;
+      const len = Math.max(...idLists.map(ids => ids.length));
+      const inputIds = new BigInt64Array(n * len);
+      const attention = new BigInt64Array(n * len);
+      idLists.forEach((ids, r) => ids.forEach((v, c) => {
+        inputIds[r * len + c] = BigInt(v);
+        attention[r * len + c] = 1n;
+      }));   // padding: [PAD] = 0 with attention 0
+      const out = await session.run({
+        input_ids: new ort.Tensor('int64', inputIds, [n, len]),
+        attention_mask: new ort.Tensor('int64', attention, [n, len]),
+      });
+      const logits = out.logits.data;
+      const k = out.logits.dims[1];
+      return idLists.map((_, r) => {
+        const row = Array.from(logits.slice(r * k, (r + 1) * k));
+        const mx = Math.max(...row);
+        const exps = row.map(v => Math.exp(v - mx));
+        const sum = exps.reduce((a, b) => a + b, 0);
+        return exps.map(e => e / sum);
+      });
+    }
+
+    async function analyze() {
+      const text = $('text-input').value.trim();
+      const btn = $('analyze-btn');
+      const spinner = $('spinner');
+      const errMsg = $('error-msg');
+
+      if (!text) {
+        errMsg.textContent = 'Please enter some text first.';
+        errMsg.style.display = 'inline';
+        return;
+      }
+      if (!session) return;
+      if (tokenizer.encode(text).ids.length > MAX_TOKENS) {
+        errMsg.textContent = `Text is too long for DistilBERT (max ${MAX_TOKENS} tokens).`;
+        errMsg.style.display = 'inline';
+        return;
+      }
+
+      btn.disabled = true;
+      spinner.style.display = 'block';
+      errMsg.style.display = 'none';
+
+      try {
+        const r = await ShapText.explain(tokenizer, text, predict, {
+          onProgress: (i, n) => { $('progress-msg').textContent = `Evaluating masked sentences ${i}/${n}…`; },
+        });
+        const top = r.fullOutput[1] >= r.fullOutput[0] ? 1 : 0;
+        const data = {
+          tokens: r.tokens,
+          pos_values: r.values.map(v => v[1]),
+          neg_values: r.values.map(v => v[0]),
+          base_value: r.baseValues[1],
+          label: LABELS[top],
+          confidence: Math.round(r.fullOutput[top] * 1000) / 10,
+        };
+        render(data);
+      } catch (e) {
+        errMsg.textContent = e.message || 'Something went wrong.';
+        errMsg.style.display = 'inline';
+      } finally {
+        btn.disabled = false;
+        spinner.style.display = 'none';
+        $('progress-msg').textContent = '';
+      }
+    }
+
+    function render(data) {
+      // Strip BERT special tokens ([CLS] / [SEP] come back as empty strings)
+      const paired = data.tokens.map((t, i) => [t, data.pos_values[i]])
+                                .filter(([t]) => t.trim() !== '');
+      const tokens    = paired.map(([t]) => t);
+      const pos_values = paired.map(([, v]) => v);
+      const { label, confidence } = data;
+      const isPositive = label === 'POSITIVE';
+
+      // Badge
+      const badge = $('badge');
+      badge.textContent = label;
+      badge.className = 'badge ' + (isPositive ? 'positive' : 'negative');
+
+      $('confidence-text').textContent = `Confidence: ${confidence}%`;
+
+      // Find max abs value for colour scaling
+      const maxAbs = Math.max(...pos_values.map(Math.abs), 1e-9);
+
+      // Token chips
+      const display = $('token-display');
+      display.innerHTML = '';
+      tokens.forEach((tok, i) => {
+        const v = pos_values[i];
+        const intensity = Math.abs(v) / maxAbs;           // 0–1
+        const chip = document.createElement('span');
+        chip.className = 'token-chip';
+        chip.textContent = tok;
+        chip.setAttribute('data-tip', (v >= 0 ? '+' : '') + v.toFixed(4));
+
+        if (v > 0) {
+          // Positive contribution → green tint
+          const g = Math.round(60 + intensity * 130);
+          chip.style.background = `rgba(34,${g},34,${0.25 + intensity * 0.55})`;
+          chip.style.color = `rgb(100,${180 + Math.round(intensity * 75)},100)`;
+        } else {
+          // Negative contribution → red tint
+          const r = Math.round(120 + intensity * 135);
+          chip.style.background = `rgba(${r},30,30,${0.25 + intensity * 0.55})`;
+          chip.style.color = `rgb(${180 + Math.round(intensity * 75)},80,80)`;
+        }
+        display.appendChild(chip);
+      });
+
+      // Chart
+      const barColors = pos_values.map(v =>
+        v >= 0
+          ? `rgba(74, 222, 128, ${0.4 + Math.abs(v) / maxAbs * 0.6})`
+          : `rgba(248, 113, 113, ${0.4 + Math.abs(v) / maxAbs * 0.6})`
+      );
+      const borderColors = pos_values.map(v =>
+        v >= 0 ? 'rgba(74, 222, 128, 1)' : 'rgba(248, 113, 113, 1)'
+      );
+
+      if (chartInstance) chartInstance.destroy();
+
+      const ctx = $('shap-chart').getContext('2d');
+      chartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: tokens,
+          datasets: [{
+            label: 'SHAP value (POSITIVE class)',
+            data: pos_values,
+            backgroundColor: barColors,
+            borderColor: borderColors,
+            borderWidth: 1.5,
+            borderRadius: 4,
+          }],
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          animation: { duration: 400 },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: ctx => ` SHAP: ${ctx.parsed.x.toFixed(5)}`
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { color: '#2d3148' },
+              ticks: { color: '#94a3b8' },
+              title: {
+                display: true,
+                text: 'SHAP value → positive',
+                color: '#64748b',
+              }
+            },
+            y: {
+              grid: { color: '#1e2130' },
+              ticks: { color: '#cbd5e1', font: { family: 'monospace', size: 13 } },
+            }
+          }
+        }
+      });
+
+      $('results').style.display = 'block';
+    }
+
+    // Ctrl+Enter to submit
+    $('text-input').addEventListener('keydown', e => {
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && !$('analyze-btn').disabled) analyze();
+    });
+
+    initModel();
+  </script>
+</body>
+</html>
