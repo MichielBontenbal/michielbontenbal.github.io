@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>word2vec Explorer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js"></script>
+<script src="engine.js"></script>
+<style>
+:root {
+  --bg: #f6f5f1; --panel: #ffffff; --ink: #1c1b19; --muted: #6b6860; --line: #e4e1d8;
+  --input: #2f6fdf; --answer: #e0661b; --result: #8b8a84; --synthetic: #8a3ffc; --odd: #d93a3a;
+  --chip: #efece4; --focus: rgba(47,111,223,.25);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #131312; --panel: #1c1c1a; --ink: #eceae4; --muted: #9a978e; --line: #2e2d2a;
+    --input: #6d9eff; --answer: #ff8a3d; --result: #8a8880; --synthetic: #b38bff; --odd: #ff6b6b;
+    --chip: #262624; --focus: rgba(109,158,255,.3);
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 Inter, system-ui, sans-serif; }
+.wrap { max-width: 1280px; margin: 0 auto; padding: 28px 20px 60px; }
+header { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+h1 { font-size: 26px; margin: 0; letter-spacing: -.02em; }
+h1 span { color: var(--muted); font-weight: 500; }
+.badge { font: 12px "JetBrains Mono", monospace; color: var(--muted); background: var(--chip);
+         padding: 4px 10px; border-radius: 99px; }
+.badge.loading::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: 6px;
+  border-radius: 50%; background: var(--answer); animation: pulse 1s infinite alternate; }
+@keyframes pulse { from { opacity: .3 } to { opacity: 1 } }
+.lede { color: var(--muted); max-width: 760px; margin: 6px 0 22px; }
+
+.tabs { display: flex; gap: 4px; background: var(--chip); padding: 4px; border-radius: 10px; width: fit-content; }
+.tabs button { border: 0; background: none; color: var(--muted); font: 500 14px Inter, sans-serif;
+  padding: 7px 14px; border-radius: 7px; cursor: pointer; }
+.tabs button.on { background: var(--panel); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+
+.query { display: flex; gap: 10px; margin: 14px 0 10px; flex-wrap: wrap; }
+.query input[type=text] { flex: 1 1 380px; font: 20px "JetBrains Mono", monospace; padding: 12px 16px;
+  border: 1px solid var(--line); border-radius: 10px; background: var(--panel); color: var(--ink); outline: none; }
+.query input[type=text]:focus { border-color: var(--input); box-shadow: 0 0 0 4px var(--focus); }
+.query button { font: 600 15px Inter, sans-serif; padding: 0 22px; border-radius: 10px; border: 0;
+  background: var(--ink); color: var(--bg); cursor: pointer; }
+.topn { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; }
+.topn input { width: 90px; }
+.hint { color: var(--muted); font-size: 13px; margin-bottom: 8px; }
+.examples { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 20px; }
+.examples button { font: 13px "JetBrains Mono", monospace; background: var(--chip); color: var(--ink);
+  border: 1px solid transparent; border-radius: 99px; padding: 4px 11px; cursor: pointer; }
+.examples button:hover { border-color: var(--line); background: var(--panel); }
+.error { color: var(--odd); font-weight: 500; margin: 0 0 14px; min-height: 1px; }
+
+.grid { display: grid; grid-template-columns: minmax(280px, 360px) 1fr; gap: 18px; }
+@media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px; min-width: 0; }
+.panel h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted);
+  margin: 0 0 12px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.panel h2 .seg { text-transform: none; letter-spacing: 0; }
+.seg { display: inline-flex; background: var(--chip); border-radius: 7px; padding: 2px; }
+.seg button { border: 0; background: none; color: var(--muted); font: 500 12px Inter, sans-serif; padding: 3px 10px;
+  border-radius: 5px; cursor: pointer; }
+.seg button.on { background: var(--panel); color: var(--ink); }
+
+.headline { font-size: 21px; line-height: 1.35; margin-bottom: 14px; }
+.headline b { color: var(--answer); }
+.headline i { font-style: normal; color: var(--input); font-weight: 600; }
+.meta { font-size: 13px; color: var(--muted); margin-bottom: 14px; }
+.meta code { font-family: "JetBrains Mono", monospace; color: var(--ink); }
+.list { list-style: none; padding: 0; margin: 0; }
+.list li { display: grid; grid-template-columns: 22px 1fr 52px; align-items: center; gap: 8px; padding: 4px 0; }
+.list .n { color: var(--muted); font-size: 12px; text-align: right; }
+.list .w { font-family: "JetBrains Mono", monospace; cursor: pointer; position: relative; padding: 2px 6px;
+  border-radius: 4px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.list .w .bar { position: absolute; inset: 0 auto 0 0; background: var(--chip); z-index: 0; border-radius: 4px; }
+.list .w span { position: relative; }
+.list .w:hover span { text-decoration: underline; }
+.list li.top .w { color: var(--answer); font-weight: 500; }
+.list li.hit .w { color: var(--answer); font-weight: 600; }
+.list .s { font: 12px "JetBrains Mono", monospace; color: var(--muted); text-align: right; }
+.group { margin-bottom: 16px; }
+.group h3 { margin: 0 0 4px; font: 600 15px "JetBrains Mono", monospace; display: flex; align-items: center; gap: 8px; }
+.group h3 .dot { width: 10px; height: 10px; border-radius: 50%; }
+
+#plot { width: 100%; height: 520px; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--muted); margin-top: 6px; }
+.legend span::before { content: ""; display: inline-block; width: 9px; height: 9px; border-radius: 50%;
+  margin-right: 5px; background: var(--c); vertical-align: middle; }
+.below { display: grid; grid-template-columns: 1fr minmax(300px, 420px); gap: 18px; margin-top: 18px; }
+@media (max-width: 1000px) { .below { grid-template-columns: 1fr; } }
+.note { font-size: 13px; color: var(--muted); margin: 8px 0 0; }
+.empty { color: var(--muted); padding: 60px 0; text-align: center; }
+footer { margin-top: 36px; color: var(--muted); font-size: 12px; }
+footer a { color: inherit; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>word2vec <span>explorer</span></h1>
+    <div id="badge" class="badge loading">loading vectors…</div>
+  </header>
+  <p class="lede">Every word is a point in a 300-dimensional space, learned from ~100 billion words of Google News. This page runs entirely in your browser
+    on the 100,000 most frequent words (8-bit compressed, 30 MB).
+    Words used in similar contexts end up close together — and <em>directions</em> in the space carry meaning.</p>
+
+  <div class="tabs" id="tabs">
+    <button data-mode="analogy" class="on">Analogy</button>
+    <button data-mode="neighbors">Nearest words</button>
+    <button data-mode="oddone">Odd one out</button>
+  </div>
+
+  <form class="query" id="form">
+    <input type="text" id="q" autocomplete="off" spellcheck="false" autofocus>
+    <label class="topn">results <input type="range" id="topn" min="3" max="25" value="10"><span id="topnv">10</span></label>
+    <button type="submit">Go</button>
+  </form>
+  <div class="hint" id="hint"></div>
+  <div class="examples" id="examples"></div>
+  <p class="error" id="err"></p>
+
+  <div class="grid">
+    <section class="panel" id="side"><div class="empty">Type some words above ↑</div></section>
+    <section class="panel">
+      <h2>Projection of the vectors
+        <span class="seg" id="dims"><button data-d="2" class="on">2D</button><button data-d="3">3D</button></span>
+      </h2>
+      <div id="plot"></div>
+      <div class="legend" id="legend"></div>
+      <p class="note" id="plotnote">300 dimensions squashed to 2 (or 3) with PCA, fitted on the highlighted words.
+        Distances are approximate — trust the cosine similarities in the list.</p>
+    </section>
+  </div>
+
+  <div class="below">
+    <section class="panel">
+      <h2>The vectors themselves</h2>
+      <div id="heat"></div>
+      <p class="note" id="heatnote">Each row is one word: 300 numbers, blue = negative, red = positive (unit-length vectors).</p>
+    </section>
+    <section class="panel">
+      <h2>Cosine similarity</h2>
+      <div id="matrix"></div>
+      <p class="note">1 = same direction, 0 = unrelated.</p>
+    </section>
+  </div>
+
+  <footer>Based on Mikolov et al. (2013), <a href="https://code.google.com/archive/p/word2vec/" target="_blank">code.google.com/archive/p/word2vec</a>.
+    Click any word to see its nearest neighbours.</footer>
+</div>
+
+<script>
+const MODES = {
+  analogy: {
+    placeholder: "man king woman",
+    hint: "<b>a b c</b> → “a is to b as c is to ?” (computes b − a + c). Add a 4th word to check it, or write an expression like <code>paris - france + italy</code>. Phrases use underscores: <code>New_York</code>.",
+    examples: ["man king woman queen", "france paris italy", "king - man + woman", "big bigger small",
+      "einstein scientist picasso", "japan sushi germany", "walking walked swimming", "Microsoft Windows Google",
+      "copper Cu gold", "brother sister uncle", "amsterdam netherlands madrid"],
+  },
+  neighbors: {
+    placeholder: "france",
+    hint: "One or more words (up to 6). Like the original <code>./distance</code> tool: the closest words by cosine similarity.",
+    examples: ["france", "amsterdam", "python", "king queen", "cat dog", "apple", "happy sad", "coffee tea beer"],
+  },
+  oddone: {
+    placeholder: "breakfast cereal dinner lunch",
+    hint: "Three or more words. The one furthest from the average vector doesn't belong.",
+    examples: ["breakfast cereal dinner lunch", "cat dog mouse car", "paris berlin london banana",
+      "red green blue happy", "guitar piano violin hammer"],
+  },
+};
+
+const $ = (id) => document.getElementById(id);
+const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const show = (w) => w.replace(/_/g, " ");
+const GROUP_COLORS = ["#2f6fdf", "#e0661b", "#1e9e6a", "#c2399a", "#8a3ffc", "#b8870b"];
+
+let mode = "analogy", dims = 2, last = null;
+
+// ------------------------------------------------------------------ model loading
+let ready = false;
+async function init() {
+  const b = $("badge");
+  try {
+    const r = await W2V.load("", (f) => (b.textContent = `loading vectors… ${Math.round(f * 100)}%`));
+    ready = true;
+    b.className = "badge";
+    b.textContent = `Google News word2vec · ${r.vocab.toLocaleString()} words × ${r.dim}d`;
+    if (location.hash) fromHash(); else run();
+  } catch (e) {
+    b.className = "badge"; b.textContent = "failed to load vectors"; $("err").textContent = e.message;
+  }
+}
+
+// ------------------------------------------------------------------ UI wiring
+function setMode(m, text) {
+  mode = m;
+  document.querySelectorAll("#tabs button").forEach((b) => b.classList.toggle("on", b.dataset.mode === m));
+  const cfg = MODES[m];
+  $("q").placeholder = cfg.placeholder;
+  $("q").value = text ?? cfg.examples[0];
+  $("hint").innerHTML = cfg.hint;
+  $("examples").innerHTML = cfg.examples.map((e) => `<button type="button">${esc(e)}</button>`).join("");
+  $("examples").querySelectorAll("button").forEach((b) => (b.onclick = () => { $("q").value = b.textContent; run(); }));
+  document.querySelector(".topn").style.visibility = m === "oddone" ? "hidden" : "visible";
+}
+document.querySelectorAll("#tabs button").forEach((b) => (b.onclick = () => { setMode(b.dataset.mode); run(); }));
+$("form").onsubmit = (e) => { e.preventDefault(); run(); };
+$("topn").oninput = () => ($("topnv").textContent = $("topn").value);
+$("topn").onchange = run;
+document.querySelectorAll("#dims button").forEach((b) => (b.onclick = () => {
+  dims = +b.dataset.d;
+  document.querySelectorAll("#dims button").forEach((x) => x.classList.toggle("on", x === b));
+  if (last) renderPlot(last);
+}));
+function explore(word) { setMode("neighbors", show(word)); run(); window.scrollTo({ top: 0, behavior: "smooth" }); }
+window.addEventListener("hashchange", fromHash);
+function fromHash() {
+  const [m, ...rest] = decodeURIComponent(location.hash.slice(1)).split("/");
+  if (!MODES[m]) return run();
+  const text = rest.join("/");
+  if (m === mode && text === $("q").value && last) return;
+  setMode(m, text); run(false);
+}
+
+// ------------------------------------------------------------------ query
+function run(updateHash = true) {
+  const text = $("q").value.trim();
+  if (!text || !ready) return;
+  if (updateHash !== false) history.replaceState(null, "", `#${mode}/${encodeURIComponent(text)}`);
+  $("err").textContent = "";
+  let data;
+  try { data = W2V.query(mode, text, +$("topn").value); } catch (e) { $("err").textContent = e.message; return; }
+  last = { mode, ...data };
+  renderSide(last); renderPlot(last); renderHeat(last); renderMatrix(last);
+}
+
+// ------------------------------------------------------------------ side panel
+function listHTML(results, { topClass = true, hit = null } = {}) {
+  const max = Math.max(...results.map((r) => r.sim), 0.01);
+  return `<ol class="list">${results.map((r, i) => `
+    <li class="${r.word === hit ? "hit" : i === 0 && topClass ? "top" : ""}">
+      <span class="n">${i + 1}</span>
+      <span class="w" data-w="${esc(r.word)}"><i class="bar" style="width:${(Math.max(r.sim, 0) / max) * 100}%"></i><span>${esc(show(r.word))}</span></span>
+      <span class="s">${r.sim.toFixed(3)}</span>
+    </li>`).join("")}</ol>`;
+}
+
+function renderSide(d) {
+  let h = "";
+  if (d.mode === "analogy") {
+    const c = d.classic, top = d.results[0].word;
+    if (c) {
+      h += `<div class="headline"><i>${esc(show(c.a))}</i> is to <i>${esc(show(c.b))}</i><br>as <i>${esc(show(c.c))}</i> is to <b>${esc(show(top))}</b></div>`;
+    } else {
+      h += `<div class="headline"><i>${esc(show(d.expression))}</i> ≈ <b>${esc(show(top))}</b></div>`;
+    }
+    if (d.expected) {
+      const e = d.expected;
+      h += `<div class="meta">${e.rank === 1 ? "✓" : "✗"} <code>${esc(show(e.word))}</code> ranks <b>#${e.rank.toLocaleString()}</b> (cos ${e.sim.toFixed(3)})</div>`;
+    }
+    if (c) {
+      h += `<div class="meta">The offsets <code>${esc(show(c.b))} − ${esc(show(c.a))}</code> and <code>${esc(show(c.d))} − ${esc(show(c.c))}</code>
+            point in a similar direction: cos = <b>${c.offset_cos.toFixed(3)}</b></div>`;
+    }
+    h += `<h2>Closest to <span style="text-transform:none;font-family:JetBrains Mono">${esc(show(d.expression))}</span></h2>`;
+    h += listHTML(d.results, { hit: d.expected?.word });
+  } else if (d.mode === "neighbors") {
+    d.groups.forEach((g, i) => {
+      h += `<div class="group"><h3><span class="dot" style="background:${GROUP_COLORS[i % 6]}"></span>
+        <span class="w" data-w="${esc(g.word)}">${esc(show(g.word))}</span></h3>${listHTML(g.results, { topClass: false })}</div>`;
+    });
+  } else {
+    h += `<div class="headline">The odd one out is <b>${esc(show(d.odd))}</b></div>`;
+    h += `<h2>Similarity to the average</h2>` + listHTML(d.ranking, { topClass: false, hit: d.odd });
+  }
+  $("side").innerHTML = h;
+  $("side").querySelectorAll("[data-w]").forEach((el) => (el.onclick = () => explore(el.dataset.w)));
+}
+
+// ------------------------------------------------------------------ plot
+function colorOf(p, d) {
+  if (d.mode === "neighbors") return GROUP_COLORS[d.groups.findIndex((g) => g.word === p.group) % 6];
+  return { input: css("--input"), answer: css("--answer"), result: css("--result"), synthetic: css("--synthetic"), odd: css("--odd") }[p.role];
+}
+
+function baseLayout() {
+  const ink = css("--ink"), line = css("--line");
+  const axis = { showgrid: true, gridcolor: line, zeroline: false, showticklabels: false, title: "" };
+  return { ink, line, axis, layout: {
+    paper_bgcolor: "rgba(0,0,0,0)", plot_bgcolor: "rgba(0,0,0,0)", font: { family: "Inter", color: ink, size: 13 },
+    margin: { l: 10, r: 10, t: 10, b: 10 }, showlegend: false, hovermode: "closest", dragmode: "pan",
+  } };
+}
+
+function renderPlot(d) {
+  const { layout, axis, line } = baseLayout();
+  const pts = d.points, byWord = Object.fromEntries(pts.map((p) => [p.word, p]));
+  const isNb = d.mode === "neighbors";
+  const size = (p) => (p.role === "result" ? 8 : p.role === "synthetic" ? 16 : 13);
+  const symbol = (p) => (p.role === "synthetic" ? (dims === 3 ? "diamond" : "star") : "circle");
+  const opacity = (p) => (p.role === "result" && !isNb ? 0.55 : 1);
+  // declutter: important points always get a label; runners-up only when there is room (hover still works)
+  const xs = pts.map((p) => p.x), ys = pts.map((p) => p.y);
+  const xr = Math.max(...xs) - Math.min(...xs) || 1, yr = Math.max(...ys) - Math.min(...ys) || 1;
+  const labelled = [];
+  const keep = new Set(pts.filter((p) => p.role !== "result").concat(pts.filter((p) => p.role === "result"))
+    .filter((p) => {
+      const free = labelled.every((q) => Math.abs(q.x - p.x) / xr > 0.1 || Math.abs(q.y - p.y) / yr > 0.05);
+      if (free || p.role !== "result" || dims === 3) { labelled.push(p); return true; }
+      return false;
+    }));
+  const textOf = (p) => (keep.has(p) ? show(p.word) : "");
+  const hover = pts.map((p) => `<b>${esc(show(p.word))}</b>` + (p.role === "synthetic" ? "<br>(computed vector, not a word)" : ""));
+  const traces = [];
+  const arrows = (d.arrows || []).filter(([a, b]) => byWord[a] && byWord[b]);
+
+  if (dims === 2) {
+    traces.push({
+      type: "scatter", mode: "markers+text", x: pts.map((p) => p.x), y: pts.map((p) => p.y),
+      text: pts.map(textOf), textposition: "top center", hovertext: hover, hoverinfo: "text", cliponaxis: false,
+      textfont: { size: pts.map((p) => (p.role === "result" ? 11 : 14)), color: pts.map((p) => colorOf(p, d)) },
+      marker: { size: pts.map(size), symbol: pts.map(symbol), color: pts.map((p) => colorOf(p, d)),
+        opacity: pts.map(opacity), line: { width: 0 } },
+    });
+    layout.xaxis = { ...axis }; layout.yaxis = { ...axis, scaleanchor: "x" };
+    layout.margin = { l: 40, r: 40, t: 30, b: 20 };
+    layout.annotations = arrows.map(([a, b, kind]) => {
+      const pa = byWord[a], pb = byWord[b];
+      const col = kind === "offset" ? css("--input") : kind === "side" ? css("--muted") : colorOf(pb, d);
+      return { x: pb.x, y: pb.y, ax: pa.x, ay: pa.y, xref: "x", yref: "y", axref: "x", ayref: "y", text: "",
+        showarrow: true, arrowhead: kind === "side" || kind === "link" ? 0 : 2, arrowsize: 1.2, standoff: 7, startstandoff: 7,
+        arrowwidth: kind === "offset" ? 2.5 : 1, arrowcolor: col, opacity: kind === "offset" ? 0.9 : 0.35 };
+    });
+  } else {
+    for (const [a, b, kind] of arrows) {
+      const pa = byWord[a], pb = byWord[b];
+      traces.push({ type: "scatter3d", mode: "lines", x: [pa.x, pb.x], y: [pa.y, pb.y], z: [pa.z, pb.z], hoverinfo: "skip",
+        line: { width: kind === "offset" ? 6 : 2, color: kind === "offset" ? css("--input") : kind === "side" ? css("--muted") : colorOf(pb, d),
+          dash: kind === "side" ? "dash" : "solid" }, opacity: kind === "offset" ? 0.9 : 0.35 });
+    }
+    traces.push({
+      type: "scatter3d", mode: "markers+text", x: pts.map((p) => p.x), y: pts.map((p) => p.y), z: pts.map((p) => p.z),
+      text: pts.map(textOf), textposition: "top center", hovertext: hover, hoverinfo: "text",
+      textfont: { size: 12, color: pts.map((p) => colorOf(p, d)) },
+      marker: { size: pts.map((p) => size(p) / 2), symbol: pts.map(symbol), color: pts.map((p) => colorOf(p, d)),
+        opacity: 0.9, line: { width: 0 } },
+    });
+    const ax3 = { ...axis, showbackground: false, showspikes: false };
+    layout.scene = { xaxis: ax3, yaxis: ax3, zaxis: ax3, aspectmode: "data", dragmode: "orbit" };
+  }
+  Plotly.react("plot", traces, layout, { displaylogo: false, responsive: true, scrollZoom: true,
+    modeBarButtonsToRemove: ["select2d", "lasso2d", "autoScale2d"] });
+  $("plot").removeAllListeners?.("plotly_click");
+  $("plot").on("plotly_click", (ev) => {
+    const p = pts[ev.points[0].pointNumber];
+    if (p && p.role !== "synthetic" && ev.points[0].data.mode.includes("text")) explore(p.word);
+  });
+
+  const legend = {
+    analogy: [["--input", "input words"], ["--answer", "answer"], ["--synthetic", "the computed vector ★"], ["--result", "runners-up"]],
+    oddone: [["--input", "words"], ["--odd", "odd one out"], ["--synthetic", "average vector ★"]],
+    neighbors: [],
+  }[d.mode];
+  $("legend").innerHTML = legend.map(([v, t]) => `<span style="--c:var(${v})">${t}</span>`).join("")
+    + (d.mode === "analogy" && d.classic ? `<span style="--c:var(--input)">thick arrows = the two offsets</span>` : "");
+}
+
+// ------------------------------------------------------------------ vector heatmap
+function renderHeat(d) {
+  const { layout } = baseLayout();
+  const rows = [...d.vectors].reverse();
+  const z = rows.map((r) => r.values);
+  const lim = Math.max(...z.flat().map(Math.abs)) * 0.8;
+  const labels = rows.map((r) => show(r.label));
+  Plotly.react("heat", [{
+    type: "heatmap", z, y: labels, colorscale: "RdBu", zmin: -lim, zmax: lim,
+    hovertemplate: "%{y}<br>dim %{x}: %{z:.3f}<extra></extra>", colorbar: { thickness: 10, len: 0.9, outlinewidth: 0 },
+    ygap: 3,
+  }], { ...layout, height: 60 + rows.length * 34, margin: { l: 150, r: 10, t: 6, b: 30 },
+    xaxis: { title: { text: "dimension", font: { size: 11 } }, showgrid: false, zeroline: false },
+    yaxis: { showgrid: false, automargin: true, tickfont: { family: "JetBrains Mono", size: 12 } } },
+    { displayModeBar: false, responsive: true });
+  $("heatnote").innerHTML = "Each row is one word: 300 numbers, blue = negative, red = positive (unit-length vectors)."
+    + (d.mode === "analogy" && d.classic ? " Compare the bottom two rows: the two <em>difference</em> vectors share much of their pattern — that shared “direction” is the relationship." : "");
+}
+
+// ------------------------------------------------------------------ similarity matrix
+function renderMatrix(d) {
+  const { layout, ink } = baseLayout();
+  if (!d.matrix) { Plotly.purge("matrix"); $("matrix").innerHTML = `<div class="empty">Add more words to compare them.</div>`; return; }
+  $("matrix").querySelector(".empty")?.remove();
+  const w = d.matrix.words.map(show), v = d.matrix.values;
+  Plotly.react("matrix", [{
+    type: "heatmap", z: v, x: w, y: w, zmin: 0, zmax: 1, colorscale: "YlOrRd", reversescale: true, showscale: false,
+    hovertemplate: "%{y} · %{x}: %{z:.3f}<extra></extra>", xgap: 2, ygap: 2,
+  }], { ...layout, height: 90 + w.length * 42, margin: { l: 10, r: 10, t: 10, b: 10 },
+    xaxis: { side: "top", showgrid: false, automargin: true, tickfont: { family: "JetBrains Mono" } },
+    yaxis: { autorange: "reversed", showgrid: false, automargin: true, tickfont: { family: "JetBrains Mono" } },
+    annotations: v.flatMap((row, i) => row.map((val, j) => ({ x: w[j], y: w[i], text: val.toFixed(2), showarrow: false,
+      font: { size: 12, color: val > 0.6 ? "#fff" : "#222" } }))) },
+    { displayModeBar: false, responsive: true });
+}
+
+setMode("analogy");
+init();
+</script>
+</body>
+</html>

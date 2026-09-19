@@ -93,3 +93,14 @@ no code, just open and explore.
   browser with ONNX Runtime Web, so your text is never uploaded. The first visit
   downloads about 134 MB of weights, which the browser then caches; without a
   GPU, long sentences can take a few minutes.
+
+- **[word2vec explorer: king − man + woman = queen](/explainers/word2vec/)** — An
+  interactive take on the original [word2vec](https://code.google.com/archive/p/word2vec/)
+  demo, using Google's pre-trained Google News vectors. Type `man king woman` and
+  see that "man is to king as woman is to queen": the page computes
+  king − man + woman and finds the closest word. It also draws the analogy as a
+  parallelogram in a 2D or 3D projection, and shows the 300 numbers behind each
+  word as a heatmap. There are also modes for finding the nearest words and for
+  spotting the odd one out. Everything runs in your browser on the 100,000 most
+  frequent words and phrases, compressed to 8-bit numbers. The first visit
+  downloads about 30 MB, which the browser then caches.
