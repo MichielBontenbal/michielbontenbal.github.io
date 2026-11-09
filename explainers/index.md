@@ -105,7 +105,7 @@ no code, just open and explore.
   frequent words and phrases, compressed to 8-bit numbers. The first visit
   downloads about 30 MB, which the browser then caches.
 
-- **[BERT in your browser: the model that reads both ways](/BERT/bert_in_browser.html)** — A
+- **[BERT in your browser: the model that reads both ways](/explainers/bert_in_browser.html)** — A
   short introduction to BERT, the encoder that reads a sentence in both directions,
   with three tasks to try yourself: fill in a `[MASK]`ed word, rate a review from 1
   to 5 stars (Dutch works too), and find the people, organisations and places in a

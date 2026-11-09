@@ -228,7 +228,7 @@ intent classifiers still run on BERT-style encoders today, because they are smal
 precise.</p>
 
 <h2>How this page runs</h2>
-<p>Just like the <a href="../explainers/gpt2_in_browser.html">GPT-2 page</a>, this uses
+<p>Just like the <a href="gpt2_in_browser.html">GPT-2 page</a>, this uses
 <a href="https://huggingface.co/docs/transformers.js">Transformers.js</a>, which runs ONNX
 exports of the models in WebAssembly inside a Web Worker. Each model is quantised to 8-bit and
 fetched from the Hugging Face CDN the first time you use it, then kept in your browser's cache.
