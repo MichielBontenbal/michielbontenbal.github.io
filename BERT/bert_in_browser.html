@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BERT in your browser: the model that reads both ways</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #F5F0E8; color: #1a1a1a; padding: 1.5rem; max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 26px; font-weight: 500; margin-bottom: .75rem; }
+  h2 { font-size: 19px; font-weight: 500; margin: 1.75rem 0 .6rem; }
+  p { font-size: 16px; line-height: 1.7; margin-bottom: .75rem; }
+  p.muted, .muted { color: #5f5e5a; }
+  ul { margin: 0 0 .75rem 1.2rem; }
+  li { font-size: 16px; line-height: 1.7; margin-bottom: .35rem; }
+  a { color: #0c447c; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 14px; background: #e7e4db; padding: 1px 5px; border-radius: 4px; }
+  .card { background: #f1efe8; border-radius: 12px; padding: 1.25rem 1.5rem; margin-bottom: 1rem; border: 0.5px solid #d3d1c7; }
+  .pill { display: inline-block; font-size: 14px; padding: 3px 10px; border-radius: 20px; font-weight: 500; }
+  .pill-purple { background: #EEEDFE; color: #3C3489; }
+  .pill-teal   { background: #E1F5EE; color: #085041; }
+  .pill-amber  { background: #FAEEDA; color: #633806; }
+  .pill-blue   { background: #e6f1fb; color: #0c447c; }
+  label.lbl { font-size: 15px; color: #5f5e5a; display: block; margin-bottom: .5rem; }
+  textarea { width: 100%; font-family: inherit; font-size: 16px; line-height: 1.6; padding: .7rem .8rem; border: 0.5px solid #b4b2a9; border-radius: 8px; background: #fff; color: #1a1a1a; resize: vertical; min-height: 70px; }
+  button { background: #fff; border: 0.5px solid #b4b2a9; border-radius: 8px; padding: 8px 20px; font-size: 16px; color: #1a1a1a; cursor: pointer; font-family: inherit; transition: background .15s; }
+  button:hover:not(:disabled) { background: #f0ede6; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  button.primary { background: #e6f1fb; border-color: #85b7eb; color: #0c447c; }
+  button.primary:hover:not(:disabled) { background: #d5e7f8; }
+  button.chip { font-size: 13px; padding: 3px 10px; border-radius: 20px; color: #5f5e5a; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 .6rem; align-items: center; }
+  .chips span { font-size: 13px; color: #888780; margin-right: 2px; }
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: .9rem 0 0; }
+  .statusrow { display: flex; align-items: center; margin-top: .9rem; min-height: 22px; }
+  .status { font-size: 15px; color: #5f5e5a; }
+  .spinner { display: none; width: 14px; height: 14px; border-radius: 50%; border: 2px solid #cfccc2; border-top-color: #3C3489; animation: spin .8s linear infinite; vertical-align: -2px; margin-right: 8px; flex: none; }
+  .spinner.on { display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .bar { height: 6px; background: #e0ddd3; border-radius: 3px; overflow: hidden; margin-top: .55rem; display: none; }
+  .bar.on { display: block; }
+  .bar > div { height: 100%; width: 0%; background: #3C3489; border-radius: 3px; transition: width .2s; }
+  .bar.indeterminate > div { width: 35%; animation: slide 1.3s ease-in-out infinite; transition: none; }
+  @keyframes slide { 0% { margin-left: -35%; } 100% { margin-left: 100%; } }
+  .warn { font-size: 14px; line-height: 1.6; color: #633806; background: #FAEEDA; border-radius: 8px; padding: .6rem .8rem; margin-top: 1rem; display: none; }
+  .warn.on { display: block; }
+
+  .output { background: #fff; border: 0.5px solid #d3d1c7; border-radius: 8px; padding: .9rem 1rem; font-size: 16px; line-height: 1.75; margin-top: .9rem; display: none; }
+  .output.on { display: block; }
+  .output .sentence { margin-bottom: .6rem; }
+  .output .filled { color: #3C3489; font-weight: 500; border-bottom: 2px solid #7F77DD; }
+  .scores { display: grid; grid-template-columns: minmax(70px, max-content) 1fr 52px; gap: 6px 12px; align-items: center; font-size: 15px; }
+  .scores .name { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .scores .track { height: 14px; background: #eeebe3; border-radius: 3px; overflow: hidden; }
+  .scores .fill { height: 100%; background: #AFA9EC; border-radius: 3px; }
+  .scores .top .fill { background: #3C3489; }
+  .scores .top.name, .scores .top.pct { font-weight: 600; }
+  .scores .pct { text-align: right; font-variant-numeric: tabular-nums; color: #5f5e5a; }
+
+  .ent { padding: 1px 4px; border-radius: 4px; white-space: nowrap; }
+  .ent sub { font-size: 10px; font-weight: 600; letter-spacing: .03em; margin-left: 3px; vertical-align: 1px; }
+  .ent-PER  { background: #EEEDFE; color: #3C3489; }
+  .ent-ORG  { background: #E1F5EE; color: #085041; }
+  .ent-LOC  { background: #FAEEDA; color: #633806; }
+  .ent-MISC { background: #e6f1fb; color: #0c447c; }
+  .entlist { margin-top: .7rem; font-size: 14px; color: #5f5e5a; line-height: 1.9; }
+
+  .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: .4rem 0 1rem; }
+  .compare .card { margin: 0; padding: 1rem 1.1rem; }
+  .compare .head { font-size: 14px; font-weight: 600; margin-bottom: .4rem; }
+  .compare .demo { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 14px; line-height: 1.8; }
+  .compare .demo .seen { color: #3C3489; font-weight: 600; }
+  .compare .demo .hidden { color: #b4b2a9; }
+  .compare .demo .target { background: #FAEEDA; color: #633806; padding: 0 3px; border-radius: 3px; }
+  .compare p { font-size: 14px; margin: .5rem 0 0; }
+
+  .footer { font-size: 14px; color: #888780; margin-top: 2rem; line-height: 1.6; }
+
+  @media (prefers-color-scheme: dark) {
+    body { background: #1a1a1a; color: #e8e6df; }
+    p, li { color: #e8e6df; }
+    p.muted, .muted, label.lbl, .status, .entlist, .scores .pct, button.chip { color: #b4b2a9; }
+    a { color: #85b7eb; }
+    code { background: #2e2e2c; }
+    .card { background: #252523; border-color: #3a3a38; }
+    .pill-purple, .ent-PER  { background: #3C3489; color: #CECBF6; }
+    .pill-teal,   .ent-ORG  { background: #085041; color: #9FE1CB; }
+    .pill-amber,  .ent-LOC  { background: #633806; color: #FAC775; }
+    .pill-blue,   .ent-MISC { background: #0c447c; color: #b5d4f4; }
+    textarea, button { background: #2e2e2c; border-color: #3a3a38; color: #e8e6df; }
+    button:hover:not(:disabled) { background: #3a3a38; }
+    button.primary { background: #0c447c; border-color: #378add; color: #b5d4f4; }
+    button.primary:hover:not(:disabled) { background: #10559a; }
+    .bar, .scores .track { background: #3a3a38; }
+    .spinner { border-color: #4a4a47; border-top-color: #7F77DD; }
+    .warn { background: #633806; color: #FAC775; }
+    .bar > div, .scores .top .fill { background: #7F77DD; }
+    .scores .fill { background: #4a4499; }
+    .output { background: #1a1a1a; border-color: #3a3a38; }
+    .output .filled { color: #CECBF6; border-color: #7F77DD; }
+    .compare .demo .seen { color: #CECBF6; }
+    .compare .demo .hidden { color: #5f5e5a; }
+    .compare .demo .target { background: #633806; color: #FAC775; }
+  }
+  @media (max-width: 560px) { .compare { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<h1>BERT in your browser: the model that reads both ways</h1>
+
+<p class="muted">BERT (Google, 2018) changed NLP almost overnight. Below you can run it on three
+classic tasks — filling in a blank word, judging the sentiment of a review, and finding names of
+people, places and organisations. Everything runs on your own machine: each model is downloaded
+once into your browser the first time you press its button.</p>
+
+<h2>What is BERT?</h2>
+<p><strong>BERT</strong> stands for <em>Bidirectional Encoder Representations from
+Transformers</em>. Where GPT-2 is a <em>decoder</em> that reads left to right and predicts the next
+word, BERT is an <em>encoder</em>: it looks at the whole sentence at once, and every word can attend
+to the words on its left <em>and</em> its right. That makes it bad at writing text, but very good
+at understanding it.</p>
+
+<div class="compare">
+  <div class="card">
+    <div class="head">GPT-2 · left to right</div>
+    <div class="demo"><span class="seen">The bank of the</span> <span class="target">???</span> <span class="hidden">was flooded</span></div>
+    <p class="muted">Only sees the past. “bank” could still be money or a riverbank.</p>
+  </div>
+  <div class="card">
+    <div class="head">BERT · both directions</div>
+    <div class="demo"><span class="seen">The bank of the</span> <span class="target">[MASK]</span> <span class="seen">was flooded</span></div>
+    <p class="muted">Sees “flooded” too, so “river” becomes the obvious answer.</p>
+  </div>
+</div>
+
+<p>BERT learned language by playing a fill-in-the-blank game on Wikipedia and a corpus of books:
+15% of the words were hidden behind a <code>[MASK]</code> token and the model had to guess them.
+This is called <strong>masked language modelling</strong>. The pre-trained model can then be
+<strong>fine-tuned</strong>: you put a small extra layer (a “head”) on top and train briefly on a
+labelled dataset for one specific task. The three demos below are exactly that — one pre-trained
+BERT body, three different heads.</p>
+
+<!-- ── 1. Fill-mask ─────────────────────────────────────────────────────── -->
+<h2>1 · Fill-mask <span class="pill pill-purple">pre-training task</span></h2>
+<p>This is the raw, pre-trained BERT without any fine-tuning. Put <code>[MASK]</code> somewhere in
+a sentence and BERT ranks the words that fit best — using context on both sides of the gap.</p>
+<div class="card">
+  <label class="lbl" for="in-fill">Sentence with one [MASK]</label>
+  <div class="chips"><span>Try:</span>
+    <button class="chip" data-for="in-fill">The bank of the [MASK] was flooded after the storm.</button>
+    <button class="chip" data-for="in-fill">I deposited my salary at the [MASK].</button>
+    <button class="chip" data-for="in-fill">The doctor said [MASK] would be back in an hour.</button>
+    <button class="chip" data-for="in-fill">Amsterdam is the capital of [MASK].</button>
+  </div>
+  <textarea id="in-fill" spellcheck="false">The bank of the [MASK] was flooded after the storm.</textarea>
+  <div class="btn-row"><button class="primary" id="run-fill">Fill the mask</button></div>
+  <div class="statusrow"><span class="spinner" id="spin-fill"></span><span class="status" id="status-fill">Model: bert-base-uncased — about 110&nbsp;MB on first use.</span></div>
+  <div class="bar" id="bar-fill"><div></div></div>
+  <div class="output" id="out-fill"></div>
+</div>
+<p class="muted">Compare the two “bank” sentences: the words after the gap decide the answer.
+The doctor sentence is a well-known way to expose the gender bias BERT absorbed from its training text.</p>
+
+<!-- ── 2. Text classification ───────────────────────────────────────────── -->
+<h2>2 · Text classification <span class="pill pill-teal">fine-tuned</span></h2>
+<p>Here BERT was fine-tuned on product reviews to predict a rating of 1 to 5 stars. The
+multilingual version was pre-trained on 104 languages, so it also understands Dutch, German,
+French, Spanish and Italian reviews.</p>
+<div class="card">
+  <label class="lbl" for="in-cls">Review</label>
+  <div class="chips"><span>Try:</span>
+    <button class="chip" data-for="in-cls">The battery died after two days. Waste of money.</button>
+    <button class="chip" data-for="in-cls">Prima product, snel geleverd, ik ben er erg blij mee!</button>
+    <button class="chip" data-for="in-cls">It's okay. Does what it says, nothing special.</button>
+    <button class="chip" data-for="in-cls">Not bad at all, actually.</button>
+  </div>
+  <textarea id="in-cls" spellcheck="false">Prima product, snel geleverd, ik ben er erg blij mee!</textarea>
+  <div class="btn-row"><button class="primary" id="run-cls">Classify</button></div>
+  <div class="statusrow"><span class="spinner" id="spin-cls"></span><span class="status" id="status-cls">Model: bert-base-multilingual-uncased-sentiment — about 170&nbsp;MB on first use.</span></div>
+  <div class="bar" id="bar-cls"><div></div></div>
+  <div class="output" id="out-cls"></div>
+</div>
+<p class="muted">Try “Not bad at all” — a bag-of-words model sees “bad” and gets confused, BERT reads
+the negation in context.</p>
+
+<!-- ── 3. NER ───────────────────────────────────────────────────────────── -->
+<h2>3 · Named entity recognition <span class="pill pill-amber">fine-tuned</span></h2>
+<p>Instead of one label for the whole text, this head gives a label to <em>every token</em>:
+is it part of a <span class="ent ent-PER">person</span>, an <span class="ent ent-ORG">organisation</span>,
+a <span class="ent ent-LOC">location</span>, a <span class="ent ent-MISC">miscellaneous</span> name — or nothing?
+This model was fine-tuned on English news (CoNLL-2003).</p>
+<div class="card">
+  <label class="lbl" for="in-ner">Text</label>
+  <div class="chips"><span>Try:</span>
+    <button class="chip" data-for="in-ner">Michiel teaches AI at the Hogeschool van Amsterdam and lives in Amsterdam.</button>
+    <button class="chip" data-for="in-ner">Apple CEO Tim Cook met Dutch prime minister Dick Schoof in The Hague on Tuesday.</button>
+    <button class="chip" data-for="in-ner">Ajax beat Feyenoord 2-1 in the Johan Cruijff ArenA.</button>
+  </div>
+  <textarea id="in-ner" spellcheck="false">Michiel teaches AI at the Hogeschool van Amsterdam and lives in Amsterdam.</textarea>
+  <div class="btn-row"><button class="primary" id="run-ner">Find entities</button></div>
+  <div class="statusrow"><span class="spinner" id="spin-ner"></span><span class="status" id="status-ner">Model: bert-base-NER — about 110&nbsp;MB on first use.</span></div>
+  <div class="bar" id="bar-ner"><div></div></div>
+  <div class="output" id="out-ner"></div>
+</div>
+<p class="muted">Note the Ajax example: is “Ajax” a club (ORG) or something else? The model has to decide
+from context alone.</p>
+
+<div class="warn" id="warn"></div>
+
+<h2>One model, many jobs</h2>
+<p>The three demos share the same architecture: 12 transformer layers, 768-dimensional vectors,
+about 110 million parameters. What differs is the small head on top:</p>
+<ul>
+  <li><span class="pill pill-purple">fill-mask</span> — for each position, a score for every one
+  of the 30,522 words in the vocabulary. This is the head BERT was pre-trained with.</li>
+  <li><span class="pill pill-teal">classification</span> — one vector for the whole text (the
+  special <code>[CLS]</code> token at the start) goes into a layer with 5 outputs: 1 to 5 stars.</li>
+  <li><span class="pill pill-amber">token classification</span> — every token's vector goes into
+  a layer with 9 outputs (<code>B-PER</code>, <code>I-PER</code>, <code>B-ORG</code>, … and
+  <code>O</code> for “not a name”).</li>
+</ul>
+<p>This recipe — pre-train once on a mountain of unlabelled text, then fine-tune cheaply on a small
+labelled dataset — is <em>transfer learning</em>, and BERT made it the default way to do NLP. You
+did not need Google's compute budget any more; a single GPU and a few thousand labelled examples
+were enough to beat the previous state of the art. Search engines, spam filters and many chatbot
+intent classifiers still run on BERT-style encoders today, because they are small, fast and
+precise.</p>
+
+<h2>How this page runs</h2>
+<p>Just like the <a href="../explainers/gpt2_in_browser.html">GPT-2 page</a>, this uses
+<a href="https://huggingface.co/docs/transformers.js">Transformers.js</a>, which runs ONNX
+exports of the models in WebAssembly inside a Web Worker. Each model is quantised to 8-bit and
+fetched from the Hugging Face CDN the first time you use it, then kept in your browser's cache.
+No server, no API key: your text never leaves your laptop.</p>
+
+<p class="footer">Models: <a href="https://huggingface.co/Xenova/bert-base-uncased">Xenova/bert-base-uncased</a> ·
+<a href="https://huggingface.co/Xenova/bert-base-multilingual-uncased-sentiment">Xenova/bert-base-multilingual-uncased-sentiment</a> ·
+<a href="https://huggingface.co/Xenova/bert-base-NER">Xenova/bert-base-NER</a> ·
+Runtime: <a href="https://github.com/xenova/transformers.js">Transformers.js 2.17</a> ·
+Paper: <a href="https://arxiv.org/abs/1810.04805">Devlin et al., 2018</a></p>
+
+<script type="module">
+const LIB = 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
+const TASKS = {
+  fill: { pipeline: 'fill-mask',            model: 'Xenova/bert-base-uncased',                       opts: { topk: 8 } },
+  cls:  { pipeline: 'text-classification',  model: 'Xenova/bert-base-multilingual-uncased-sentiment', opts: { topk: 5 } },
+  ner:  { pipeline: 'token-classification', model: 'Xenova/bert-base-NER',                           opts: {} },
+};
+
+// ── Inference runs in a Web Worker (built from a Blob, so this stays one file) ──
+// Requests are queued: one ONNX session runs at a time, each model loads once.
+const workerSource = `
+import { pipeline, env } from '${LIB}';
+env.allowLocalModels = false;
+const pipes = {};
+let queue = Promise.resolve();
+async function run({ task, spec, text }) {
+  try {
+    if (!pipes[task]) {
+      pipes[task] = await pipeline(spec.pipeline, spec.model, {
+        progress_callback: d => self.postMessage({ task, type: 'progress', d })
+      });
+      self.postMessage({ task, type: 'ready' });
+    }
+    const out = await pipes[task](text, spec.opts);
+    self.postMessage({ task, type: 'done', out });
+  } catch (err) {
+    self.postMessage({ task, type: 'error', message: String(err && err.message || err) });
+  }
+}
+self.onmessage = ({ data }) => { queue = queue.then(() => run(data)); };
+`;
+
+const $ = id => document.getElementById(id);
+const loaded = {}, busy = {}, t0 = {};
+let worker = null, workerBroken = false, mainLib = null;
+const mainPipes = {};
+
+// ── Feedback helpers ──────────────────────────────────────────────────────────
+function say(task, msg, { spinning = false, progress = null } = {}) {
+  $('status-' + task).textContent = msg;
+  $('spin-' + task).classList.toggle('on', spinning);
+  const bar = $('bar-' + task);
+  if (progress === null) bar.classList.remove('on', 'indeterminate');
+  else if (progress === 'indeterminate') bar.classList.add('on', 'indeterminate');
+  else { bar.classList.add('on'); bar.classList.remove('indeterminate'); bar.firstElementChild.style.width = progress.toFixed(1) + '%'; }
+}
+function warn(html) { $('warn').innerHTML = html; $('warn').classList.add('on'); }
+const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const pct = x => (100 * x).toFixed(1) + '%';
+
+function scoreRows(rows, topIdx) {
+  // rows: [{ name, score }]
+  return '<div class="scores">' + rows.map((r, i) => {
+    const top = i === topIdx ? ' top' : '';
+    return `<div class="name${top}">${esc(r.name)}</div>` +
+           `<div class="track${top}"><div class="fill" style="width:${(100 * r.score).toFixed(1)}%"></div></div>` +
+           `<div class="pct${top}">${pct(r.score)}</div>`;
+  }).join('') + '</div>';
+}
+
+// ── Renderers per task ────────────────────────────────────────────────────────
+const render = {
+  fill(out, text) {
+    const best = out[0];
+    const sentence = esc(text).replace('[MASK]', `<span class="filled">${esc(best.token_str)}</span>`);
+    return `<div class="sentence">${sentence}</div>` +
+           scoreRows(out.map(o => ({ name: o.token_str, score: o.score })), 0);
+  },
+
+  cls(out) {
+    const list = Array.isArray(out[0]) ? out[0] : out;
+    const rows = list.map(o => ({ n: parseInt(o.label), score: o.score }))
+                     .sort((a, b) => a.n - b.n)
+                     .map(o => ({ name: '★'.repeat(o.n) + '☆'.repeat(5 - o.n), score: o.score }));
+    const top = rows.reduce((bi, r, i) => r.score > rows[bi].score ? i : bi, 0);
+    const expected = rows.reduce((s, r, i) => s + (i + 1) * r.score, 0);
+    return `<div class="sentence">Prediction: <strong>${top + 1} star${top ? 's' : ''}</strong>
+            <span class="muted">(expected value ${expected.toFixed(2)})</span></div>` + scoreRows(rows, top);
+  },
+
+  ner(tokens, text) {
+    // Transformers.js returns one prediction per word-piece token. Merge them into
+    // entities: "##" pieces continue the previous word, I- tags continue an entity.
+    const groups = [];
+    for (const t of [...tokens].sort((a, b) => a.index - b.index)) {
+      const type = t.entity.replace(/^[BI]-/, '');
+      const last = groups[groups.length - 1];
+      const adjacent = last && t.index === last.lastIndex + 1;
+      if (adjacent && (t.word.startsWith('##') || (t.entity.startsWith('I-') && type === last.type))) {
+        last.parts.push(t.word); last.scores.push(t.score); last.lastIndex = t.index;
+      } else {
+        groups.push({ type, parts: [t.word], scores: [t.score], lastIndex: t.index });
+      }
+    }
+    if (!groups.length) return '<div class="sentence">' + esc(text) + '</div><div class="entlist">No named entities found.</div>';
+
+    // Find each entity back in the original text to highlight it.
+    const reEsc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    let html = '', cursor = 0;
+    for (const g of groups) {
+      const pattern = g.parts.map((p, i) => p.startsWith('##') ? reEsc(p.slice(2)) : (i ? '\\s*' : '') + reEsc(p)).join('');
+      const re = new RegExp(pattern, 'g'); re.lastIndex = cursor;
+      const m = re.exec(text);
+      g.score = g.scores.reduce((a, b) => a + b, 0) / g.scores.length;
+      if (!m) { g.text = g.parts.join(' ').replace(/ ##/g, ''); continue; }
+      g.text = m[0];
+      html += esc(text.slice(cursor, m.index)) +
+              `<span class="ent ent-${g.type}" title="${g.type} · ${pct(g.score)}">${esc(m[0])}<sub>${g.type}</sub></span>`;
+      cursor = m.index + m[0].length;
+    }
+    html += esc(text.slice(cursor));
+    const list = groups.map(g => `<span class="ent ent-${g.type}">${esc(g.text)}<sub>${g.type}</sub></span> ${pct(g.score)}`).join(' &nbsp; ');
+    return `<div class="sentence">${html}</div><div class="entlist">${list}</div>`;
+  },
+};
+
+// ── Messages from either engine ───────────────────────────────────────────────
+const lastText = {};
+function handle(m) {
+  const { task } = m;
+  if (m.type === 'progress') {
+    const d = m.d;
+    if (d.status === 'progress' && d.progress != null && d.total > 1e6) {
+      say(task, `Downloading the model — ${(d.loaded / 1e6).toFixed(0)} of ${(d.total / 1e6).toFixed(0)} MB. Only the first time.`,
+          { spinning: true, progress: d.progress });
+    } else if (d.status === 'download' || d.status === 'initiate') {
+      say(task, 'Fetching model files…', { spinning: true, progress: 'indeterminate' });
+    }
+  } else if (m.type === 'ready') {
+    loaded[task] = true; t0[task] = performance.now();
+    say(task, 'Model loaded — running…', { spinning: true, progress: 'indeterminate' });
+  } else if (m.type === 'done') {
+    const ms = performance.now() - t0[task];
+    const out = $('out-' + task);
+    out.innerHTML = render[task](m.out, lastText[task]);
+    out.classList.add('on');
+    finish(task, `Done in ${ms < 1000 ? ms.toFixed(0) + ' ms' : (ms / 1000).toFixed(1) + ' s'} on your own machine.`);
+  } else if (m.type === 'error') {
+    finish(task, 'Something went wrong: ' + m.message);
+  }
+}
+function finish(task, msg) { busy[task] = false; $('run-' + task).disabled = false; say(task, msg); }
+
+// ── Fallback: run on the main thread (file://, or no worker support) ──────────
+async function runOnMainThread(task, text) {
+  warn('<strong>No Web Worker available</strong> — this page was opened straight from disk, ' +
+       'so the models run on the main thread and the page freezes briefly while they work. ' +
+       'Serve the file over http (or open it from the website) for a smoother experience.');
+  say(task, loaded[task] ? 'Running on the main thread…' : 'Loading the model on the main thread — the page may freeze…',
+      { spinning: true, progress: 'indeterminate' });
+  await new Promise(r => setTimeout(r, 60));
+  try {
+    if (!mainLib) { mainLib = await import(LIB); mainLib.env.allowLocalModels = false; }
+    const spec = TASKS[task];
+    if (!mainPipes[task]) {
+      mainPipes[task] = await mainLib.pipeline(spec.pipeline, spec.model, { progress_callback: d => handle({ task, type: 'progress', d }) });
+      handle({ task, type: 'ready' });
+    }
+    const out = await mainPipes[task](text, spec.opts);
+    handle({ task, type: 'done', out: JSON.parse(JSON.stringify(out)) });
+  } catch (err) {
+    handle({ task, type: 'error', message: String(err && err.message || err) });
+  }
+}
+
+function send(task, text) {
+  if (workerBroken) return runOnMainThread(task, text);
+  if (!worker) {
+    try {
+      const url = URL.createObjectURL(new Blob([workerSource], { type: 'text/javascript' }));
+      worker = new Worker(url, { type: 'module' });
+      URL.revokeObjectURL(url);
+    } catch { workerBroken = true; return runOnMainThread(task, text); }
+    worker.onmessage = ({ data }) => handle(data);
+    worker.onerror = e => {   // a blob module worker dies asynchronously on file://
+      e.preventDefault?.();
+      try { worker.terminate(); } catch {}
+      worker = null; workerBroken = true;
+      for (const t of Object.keys(TASKS)) { loaded[t] = false; if (busy[t]) runOnMainThread(t, lastText[t]); }
+    };
+  }
+  worker.postMessage({ task, spec: TASKS[task], text });
+}
+
+// ── Wiring ────────────────────────────────────────────────────────────────────
+function run(task) {
+  if (busy[task]) return;
+  let text = $('in-' + task).value.trim();
+  if (!text) { say(task, 'Type some text first.'); return; }
+  if (task === 'fill') {
+    text = text.replace(/\[mask\]|<mask>/gi, '[MASK]');
+    const n = (text.match(/\[MASK\]/g) || []).length;
+    if (n !== 1) { say(task, n ? 'Use exactly one [MASK] — this demo fills a single gap.' : 'Put [MASK] where the missing word should go.'); return; }
+  }
+  busy[task] = true; $('run-' + task).disabled = true;
+  lastText[task] = text; t0[task] = performance.now();
+  say(task, loaded[task] ? 'Running…' : 'Starting up — fetching the model…', { spinning: true, progress: 'indeterminate' });
+  send(task, text);
+}
+
+for (const task of Object.keys(TASKS)) {
+  $('run-' + task).addEventListener('click', () => run(task));
+  $('in-' + task).addEventListener('keydown', e => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') run(task); });
+}
+document.querySelectorAll('button.chip').forEach(b => b.addEventListener('click', () => {
+  const task = b.dataset.for.slice(3);
+  $(b.dataset.for).value = b.textContent;
+  run(task);
+}));
+</script>
+
+</body>
+</html>
