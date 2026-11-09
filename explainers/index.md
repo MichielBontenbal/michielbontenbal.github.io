@@ -104,3 +104,12 @@ no code, just open and explore.
   spotting the odd one out. Everything runs in your browser on the 100,000 most
   frequent words and phrases, compressed to 8-bit numbers. The first visit
   downloads about 30 MB, which the browser then caches.
+
+- **[BERT in your browser: the model that reads both ways](/BERT/bert_in_browser.html)** — A
+  short introduction to BERT, the encoder that reads a sentence in both directions,
+  with three tasks to try yourself: fill in a `[MASK]`ed word, rate a review from 1
+  to 5 stars (Dutch works too), and find the people, organisations and places in a
+  text. The models run on your own machine through
+  [Transformers.js](https://github.com/xenova/transformers.js) and ONNX Runtime Web,
+  so your text is never uploaded. Each model downloads the first time you use it
+  (about 110, 170 and 110 MB), and the browser then caches it.
